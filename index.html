@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f6f3">
+  <meta name="description" content="在浏览器内预检中文、英文和中英混排稿件，查看被本地规则标记的文本和原因。">
+  <title>文迹 · AI 写作检测</title>
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+CiAgPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTEiIGZpbGw9IiMxMjYzNDgiLz4KICA8cGF0aCBkPSJNMTEgMTFoMTh2MThIMTF6bTQgNWgxMG0tMTAgNWg2bTQgNGg3bS0zLjUtMy41djciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==" type="image/svg+xml">
+  <style>
+:root {
+  color-scheme: light;
+  --background: #f3f6f3;
+  --surface: #fff;
+  --ink: #172c24;
+  --muted: #50665c;
+  --line: #dbe6df;
+  --green: #126348;
+  --green-deep: #104d3a;
+  --green-light: #e7f2ec;
+  --font: Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; min-width: 0; font-family: var(--font); color: var(--ink); background: var(--background); line-height: 1.6; }
+button, textarea { font: inherit; }
+button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+button:disabled { cursor: wait; opacity: .58; }
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 3px solid #398e70; outline-offset: 4px; }
+.icon-definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
+.icon { width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: middle; }
+.shell { width: min(72rem, calc(100% - 3rem)); margin-inline: auto; }
+.site-header { background: #fcfdfc; border-bottom: 1px solid var(--line); }
+.header-inner { min-height: 4.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.brand { display: inline-flex; align-items: center; gap: .68rem; font-size: 1.13rem; font-weight: 750; white-space: nowrap; }
+.brand:hover { text-decoration: none; }
+.brand-mark { width: 2.3rem; height: 2.3rem; border-radius: .64rem; display: grid; place-items: center; color: white; background: var(--green); }
+.brand-mark .icon { width: 1.4rem; height: 1.4rem; }
+.brand-divider { height: 1rem; width: 1px; background: var(--line); margin-inline: .22rem; }
+.brand-english { font-size: .85rem; color: var(--muted); font-weight: 560; letter-spacing: .015em; }
+.plain-button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; background: transparent; border: 0; border-radius: .42rem; padding: .38rem .52rem; color: var(--green-deep); font-size: .88rem; font-weight: 630; }
+.plain-button:hover { background: var(--green-light); }
+.nav-button { min-height: 2.5rem; }
+.hero {
+  isolation: isolate; position: relative; overflow: hidden;
+  margin-top: 1.8rem; padding: 1.8rem 2.35rem 1.85rem; min-height: 14.65rem;
+  display: flex; align-items: center; border-radius: 1.2rem;
+  background: radial-gradient(ellipse at 85% 30%, #25674f, transparent 58%), linear-gradient(116deg,#132c23 0%,#153f31 66%,#1b503d 100%); color: #fff;
+}
+.hero-copy { position: relative; z-index: 1; }
+.hero-label { width: fit-content; display: inline-flex; align-items: center; gap: .4rem; border: 1px solid #8ac5a65c; color: #d9f3e5; background: #91e7b91a; padding: .25rem .65rem; border-radius: 99rem; font-size: .81rem; font-weight: 640; letter-spacing: .02em; }
+.hero-label .icon { width: .9rem; height: .9rem; }
+h1, h2, p { margin: 0; }
+.hero h1 { margin: .4rem 0 .25rem; font-size: clamp(2.35rem, 5vw, 3.55rem); line-height: 1.25; letter-spacing: -.055em; font-weight: 770; }
+.hero p { font-size: 1rem; color: #e0efe7; }
+.hero-caption { display: block; margin-top: .68rem; font-size: .82rem; color: #c0dbcd; }
+.hero-art { position: absolute; top: 0; height: 100%; width: 44%; right: 0; background: radial-gradient(circle, #c0edcb45 1px, transparent 1.3px) right 8px top 4px / 13px 13px; mask-image: linear-gradient(to right, transparent, #000 20%); }
+.art-sheet { position: absolute; top: 50%; right: 24%; width: 8.4rem; height: 10.6rem; border-radius: .7rem; }
+.art-sheet-back { transform: translate(32%, -51%) rotate(14deg); background: #d7eddf2c; border: 1px solid #c2efcf51; }
+.art-sheet-front { transform: translateY(-50%) rotate(-9deg); background: #eef7f0; border: 1px solid #fff; box-shadow: 0 .75rem 2rem #102b2080; padding: .95rem; }
+.art-icon { color: #388268; width: 1.25rem; height: 1.25rem; }
+.art-lines { margin-top: .66rem; display: grid; gap: .48rem; }
+.art-lines span { height: .29rem; width: 100%; border-radius: 2rem; background: #8eae9e; }
+.art-lines .art-short { width: 59%; }
+.art-lines .art-marked { width: 91%; background: #449d76; box-shadow: 0 0 0 .18rem #c8edd3; }
+.art-lines .art-marked-short { width: 69%; margin-bottom: .18rem; }
+.art-scan { position: absolute; right: 14%; top: 60%; width: 3rem; height: 3rem; border-radius: .75rem; display: grid; place-items: center; background: #b4e5c9; color: #194c38; box-shadow: 0 .3rem 1rem #102b204d; transform: rotate(8deg); }
+.art-scan .icon { width: 1.4rem; height: 1.4rem; }
+
+.workspace { display: grid; grid-template-columns: minmax(0, 1.57fr) minmax(0, 1fr); gap: 1.12rem; margin-top: 1.18rem; }
+.panel { min-width: 0; padding: 1.28rem; border: 1px solid var(--line); border-radius: 1.05rem; background: var(--surface); box-shadow: 0 3px 11px #203b2c06; }
+.panel-head { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .7rem; margin-bottom: 1.05rem; }
+.panel-heading { display: flex; align-items: center; gap: .72rem; min-width: 0; }
+.panel-heading h2, .dialog-top h2 { font-size: 1.18rem; line-height: 1.35; letter-spacing: -.02em; font-weight: 740; }
+.panel-heading p { margin-top: .18rem; font-size: .84rem; line-height: 1.5; color: var(--muted); }
+.panel-icon { flex: none; display: grid; place-items: center; width: 2.45rem; height: 2.45rem; border-radius: .64rem; background: var(--green-light); color: var(--green); }
+.panel-icon .icon { width: 1.24rem; height: 1.24rem; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: .42rem; min-height: 2.45rem; border-radius: .56rem; border: 1px solid transparent; padding: .47rem .85rem; font-size: .875rem; line-height: 1.45; font-weight: 690; white-space: nowrap; }
+.button-secondary { border-color: var(--line); color: var(--green-deep); background: white; }
+.button-secondary:hover { background: #eff7f2; border-color: #afccbc; }
+.button-primary { min-height: 2.68rem; padding-inline: 1.05rem; background: var(--green); color: white; box-shadow: 0 2px 5px #15574026; }
+.button-primary:hover { background: #104e3a; }
+.editor-box { border: 1px solid var(--line); border-radius: .74rem; overflow: hidden; background: #f8faf8; }
+.editor-box:focus-within { border-color: #398e70; box-shadow: 0 0 0 2px #4f9b7e33; }
+textarea { width: 100%; height: 12.4rem; min-height: 8.8rem; display: block; resize: vertical; background: transparent; border: 0; padding: .95rem 1rem; outline: none !important; line-height: 1.66; color: var(--ink); font-size: 1rem; }
+textarea::placeholder { color: #61776c; opacity: 1; }
+.editor-meta { min-height: 2.35rem; padding: .15rem .72rem .2rem 1rem; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .83rem; }
+.editor-meta .plain-button { font-size: .83rem; }
+.editor-actions { display: flex; align-items: center; justify-content: space-between; gap: .65rem; margin-top: .96rem; }
+.sample-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
+.drop-button { flex: 1; flex-wrap: wrap; justify-content: flex-start; text-align: start; white-space: normal; border-style: dashed; }
+.drop-button small { color: var(--muted); font-size: .77rem; }
+.editor-panel.is-dragging .editor-box, .editor-panel.is-dragging .drop-button { border-color: #398e70; background: #e7f4eb; }
+.editor-panel.is-dragging .drop-button { box-shadow: 0 0 0 2px #4f9b7e33; }
+.file-status, .error { font-size: .87rem; margin-top: .5rem; overflow-wrap: anywhere; }
+.file-status { color: var(--muted); }
+.error { color: #a02f25; }
+.result-panel { display: flex; flex-direction: column; }
+.result-head { margin-bottom: 0; }
+.result-content { flex: 1; min-width: 0; padding: 1rem 0; text-align: center; display: grid; justify-items: center; align-content: center; }
+.score-wrap { position: relative; display: grid; place-items: center; margin-bottom: .54rem; }
+.score-ring { --progress: 0%; width: 8.85rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(#228761 var(--progress), #e6efe9 var(--progress)); }
+.score-text { width: calc(100% - 16px); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .22rem; border-radius: 50%; background: #fff; }
+#score-value { font-family: system-ui, sans-serif; font-size: 2.15rem; font-weight: 740; line-height: 1; letter-spacing: -.055em; font-variant-numeric: tabular-nums; color: var(--green-deep); }
+.score-label { color: var(--muted); font-size: .78rem; font-weight: 550; }
+.result-status { font-weight: 700; font-size: 1rem; }
+.result-detail { color: var(--muted); font-size: .85rem; margin-top: .19rem; }
+.result-note { display: flex; gap: .52rem; align-items: flex-start; border: 1px solid #e0ebe3; border-radius: .65rem; padding: .6rem .7rem; background: #f3f8f4; color: #3d5b4d; font-size: .85rem; }
+.result-note .icon { margin-top: .13rem; width: 1rem; height: 1rem; }
+.report-panel { margin-top: 1.12rem; }
+.filter { display: inline-flex; align-items: center; gap: .35rem; color: var(--green-deep); font-size: .86rem; font-weight: 620; }
+.filter input { accent-color: var(--green); width: 1rem; height: 1rem; }
+.report-text { padding: .2rem clamp(0rem, 4vw - 1rem, 3rem) .65rem; max-width: 85ch; line-height: 1.85; overflow-wrap: anywhere; }
+.report-text p { margin-top: .8rem; white-space: pre-wrap; }
+.fragment-text { display: inline; border: 0; padding: .1em 0; text-align: inherit; border-radius: .2rem; background: #fff1bd; line-height: inherit; color: inherit; cursor: pointer; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.fragment-text:hover, .fragment-text[aria-expanded="true"] { background: #fbe298; }
+.fragment-reasons { display: block; margin: .42rem 0 .65rem; padding: .42rem .58rem; border-left: 3px solid #d8b341; border-radius: .27rem; color: #574822; background: #fffae9; font-size: .86rem; }
+.fragment-detail { color: var(--muted); font-size: .9rem; }
+.signal-summary { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .65rem; }
+.signal-summary span { padding: .22rem .6rem; border-radius: .4rem; background: var(--green-light); color: var(--green-deep); font-size: .85rem; }
+.site-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .65rem 1rem; color: var(--muted); font-size: .82rem; padding: 1.15rem 0 1.45rem; }
+.site-footer span { display: flex; align-items: center; gap: .36rem; }
+.site-footer .icon { width: .9rem; height: .9rem; color: var(--green); }
+.site-footer a { text-decoration: underline; text-decoration-color: #b5c8bd; text-underline-offset: .17em; }
+.site-footer a:hover { text-decoration-color: currentColor; }
+dialog { width: min(35rem, calc(100vw - 2rem)); max-block-size: calc(100% - 2rem); padding: 1.4rem; color: var(--ink); border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 1rem 3rem #1a30264d; }
+dialog::backdrop { background: #132d2373; }
+.dialog-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .7rem; }
+.close-button { padding: .45rem; min-height: 2.4rem; width: 2.4rem; }
+dialog p + p { margin-top: .6rem; }
+dialog dt { color: var(--green-deep); font-weight: 700; margin-bottom: .12rem; }
+dialog dd { margin: 0 0 .55rem; color: var(--muted); }
+@media (max-width: 760px) {
+  .shell { width: calc(100% - 2rem); }
+  .workspace { grid-template-columns: 1fr; }
+  .hero { margin-top: 1.2rem; padding-inline: 1.35rem; }
+  .hero-art { width: 43%; right: -1%; }
+  .result-content { padding: 1.15rem 0; }
+}
+@media (max-width: 520px) {
+  .shell { width: calc(100% - 1.4rem); }
+  .header-inner { min-height: 3.65rem; }
+  .brand-english { display: none; }
+  .brand-divider { display: none; }
+  .hero { border-radius: .92rem; min-height: 0; padding: 1.25rem 1rem 1.35rem; }
+  .hero-art { display: none; }
+  .hero h1 { margin-block: .48rem .3rem; }
+  .panel { padding: .95rem; }
+  .panel-head { gap: .5rem; align-items: flex-start; }
+  .panel-heading { gap: .5rem; }
+  .panel-heading p { font-size: .78rem; }
+  .editor-panel .panel-head { flex-wrap: wrap; }
+  .panel-icon { width: 2rem; height: 2rem; }
+  .panel-icon .icon { width: 1.1rem; height: 1.1rem; }
+  .button { padding-inline: .6rem; }
+  .button-primary { padding-inline: .75rem; }
+  .report-head { flex-wrap: wrap; }
+  .site-footer { padding-bottom: 1rem; }
+}
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-definitions" aria-hidden="true">
+    <symbol id="i-logo" viewBox="0 0 24 24"><path d="M4 4.5h16v15H4zM8 9h8m-8 4h5"/><path d="M16 16h5m-2.5-2.5v5" stroke-width="1.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10zm0 0v7h7M8 14h8m-8 3h5"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4m-4 4 4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3m0 6v3a2 2 0 0 1-2 2h-3m-6 0H6a2 2 0 0 1-2-2v-3m3-3h10"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 4v16h16M8 16v-4m5 4V7m5 9V4"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="#" aria-label="文迹首页">
+        <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-logo"/></svg></span>
+        <span>文迹</span><span class="brand-divider"></span><span class="brand-english">Writing Lab</span>
+      </a>
+      <button type="button" class="plain-button nav-button" data-open-method>
+        <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>检测说明
+      </button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <div class="hero-label"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>本地检测 · 无需上传</div>
+        <h1 id="page-title">AI 写作检测</h1>
+        <p>预检中文、英文或中英混排稿件，查看标记与原因。</p>
+        <span class="hero-caption">独立预检工具，非 Turnitin 官方服务</span>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="art-sheet art-sheet-back"></div>
+        <div class="art-sheet art-sheet-front">
+          <svg class="icon art-icon"><use href="#i-file"/></svg>
+          <div class="art-lines">
+            <span></span><span></span><span class="art-short"></span>
+            <span class="art-marked"></span><span class="art-marked art-marked-short"></span>
+            <span></span><span class="art-short"></span>
+          </div>
+        </div>
+        <div class="art-scan"><svg class="icon"><use href="#i-scan"/></svg></div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel editor-panel" id="editor-panel" aria-labelledby="editor-title">
+        <div class="panel-head">
+          <div class="panel-heading">
+            <span class="panel-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+            <div><h2 id="editor-title"><label for="manuscript">输入稿件</label></h2><p id="editor-help">中文按字计，英文按词计 · 120–30,000</p></div>
+          </div>
+          <div class="sample-actions">
+            <button type="button" class="button button-secondary" id="sample">英文示例</button>
+            <button type="button" class="button button-secondary" id="sample-zh">中文示例</button>
+          </div>
+        </div>
+        <div class="editor-box">
+          <textarea id="manuscript" placeholder="在此粘贴或输入正文，也可以拖入文件…" aria-describedby="editor-help" maxlength="350000" spellcheck="false" autocomplete="off" dir="auto"></textarea>
+          <div class="editor-meta">
+            <span id="word-count">0 字 / 词</span>
+            <button type="button" class="plain-button" id="clear" hidden>清空</button>
+          </div>
+        </div>
+        <p class="file-status" id="file-status" role="status" hidden></p>
+        <p class="error" id="editor-error" role="alert" hidden></p>
+        <div class="editor-actions">
+          <input id="file-input" type="file" accept=".txt,.docx" hidden>
+          <button type="button" class="button button-secondary drop-button" id="import"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><span>拖拽或选择文件</span><small>TXT / DOCX</small></button>
+          <button type="button" class="button button-primary" id="scan"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>开始检测</button>
+        </div>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="result-title">
+        <div class="panel-head result-head">
+          <div class="panel-heading">
+            <span class="panel-icon"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg></span>
+            <div><h2 id="result-title">检测结果</h2><p>本地规则分析</p></div>
+          </div>
+        </div>
+        <div class="result-content">
+          <div class="score-wrap">
+            <div class="score-ring" id="score-ring">
+              <div class="score-text"><span id="score-value">—</span><span class="score-label">标记文本占比</span></div>
+            </div>
+          </div>
+          <p class="result-status" id="result-status" role="status">等待检测</p>
+          <p class="result-detail" id="result-detail">检测后可查看各项规则的命中情况。</p>
+        </div>
+        <div class="result-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><p>结果仅反映本工具识别的写作特征，无法判定文章是否由 AI 撰写。</p></div>
+      </section>
+    </div>
+
+    <section class="panel report-panel" id="report" aria-labelledby="report-title" hidden>
+      <div class="panel-head report-head">
+        <div class="panel-heading">
+          <span class="panel-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+          <div><h2 id="report-title">稿件标记</h2><p>点击高亮文字，查看触发的规则。</p></div>
+        </div>
+        <label class="filter"><input id="filter" type="checkbox"> 仅显示标记片段</label>
+      </div>
+      <div class="signal-summary" id="signal-summary" aria-label="各项规则命中的句数"></div>
+      <p class="fragment-detail" id="fragment-detail" role="status" hidden></p>
+      <div class="report-text" id="report-text"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer shell">
+    <span><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>稿件仅在当前浏览器页面内处理</span>
+    <a href="https://guides.turnitin.com/hc/en-us/articles/22774058814093-Using-the-AI-Writing-Report" target="_blank" rel="noopener noreferrer">Turnitin 官方报告说明</a>
+  </footer>
+
+  <dialog id="method" aria-labelledby="method-title">
+    <div class="dialog-top">
+      <h2 id="method-title">如何理解检测结果</h2>
+      <button type="button" class="plain-button close-button" id="close-method" aria-label="关闭说明"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p>文迹将正文拆成句子，以相邻的最多五句为一组。同组内分别比较中文句和英文句。单句在同一组中符合至少两项规则时才会高亮。</p>
+    <dl>
+      <dt>套语集中</dt><dd>组内至少两句含有词表里的惯用表达，例如「值得注意的是」或 “it is worth noting that”。</dd>
+      <dt>句长接近</dt><dd>至少四句同语种句子的长度较接近。短句不计入这项比较。</dd>
+      <dt>句首重复</dt><dd>组内至少两句以相同的英文两词或中文六字开头。</dd>
+    </dl>
+    <p>标记文本占比是高亮句子的计数除以全文计数。中文按汉字计，英文按词计，混排时相加。命中统计包含只触发一项规则的句子，因此 0% 时也可能有单项命中。</p>
+    <p>这些规则没有经过准确率校准。人工写作也可能被标记，AI 写作也可能漏标。Turnitin AI 写作分数请查看官方报告。</p>
+  </dialog>
+  <script>
+(() => {
+'use strict';
+
+const MIN_UNITS = 120;
+const MAX_UNITS = 30_000;
+const MAX_CHARACTERS = 350_000;
+const WINDOW_SIZE = 5;
+const signalNames = ['套语集中', '句长接近', '句首重复'];
+
+const wordPattern = /\p{Script=Latin}+(?:[’'-]\p{Script=Latin}+)*/gu;
+const hanPattern = /\p{Script=Han}/gu;
+const sentenceSegmenter = typeof Intl.Segmenter === 'function'
+  ? new Intl.Segmenter('en', { granularity: 'sentence' })
+  : null;
+const englishTemplates = /\b(?:it is (?:important|essential|crucial|necessary) to (?:note|recognize|recognise|consider|emphasize|emphasise)|it is worth noting that|it is (?:clear|evident) that|it should be noted that|it cannot be overstated|in (?:today[’']s|the) rapidly (?:evolving|changing) (?:landscape|world)|plays? (?:a |an )?(?:pivotal|crucial|vital) role|a wide range of|a nuanced understanding of|delve into|pave the way for|from a broader perspective|in conclusion|in summary|to sum up|taken together|on the other hand|in addition|furthermore|moreover|consequently|ultimately)\b/i;
+const chineseTemplates = /值得(?:注意|一提|[關关]注)的是|(?:需要|必[須须])(?:指出|[強强][調调]|注意)的是|不容忽[視视]的是|不可否[認认]的是|在此背景下|[綜综]上所述|[總总]而言之|[總总][體体]而言|[綜综]合(?:来看|來看|而言)|毋庸置疑|[發发][揮挥]著?[^\s，。！？；]{0,6}(?:作用|角色)|至[關关]重要|[進进]一步推[動动]|提供有力支[撐撑]|[帶带][來来]深[遠远]影[響响]|具有重要意[義义]|一方面.{0,50}另一方面/u;
+const englishWords = new Set([
+  'the', 'a', 'an', 'of', 'and', 'or', 'but', 'in', 'to', 'for', 'from',
+  'is', 'are', 'was', 'were', 'be', 'been', 'by', 'with', 'on', 'at', 'that',
+  'which', 'as', 'will', 'has', 'have', 'had', 'can', 'could', 'may', 'would',
+  'should', 'its', 'our', 'their', 'his', 'her', 'this', 'these', 'those',
+  'it', 'i', 'you', 'we', 'they', 'he', 'she', 'who', 'when', 'how', 'there',
+  'some', 'more', 'other', 'not', 'than', 'between', 'into', 'about'
+]);
+
+function words(text) {
+  return text.match(wordPattern) ?? [];
+}
+
+function hanCount(text) {
+  return text.match(hanPattern)?.length ?? 0;
+}
+
+function textCounts(text) {
+  return { han: hanCount(text), words: words(text).length };
+}
+
+function splitSentences(text) {
+  if (sentenceSegmenter) return Array.from(sentenceSegmenter.segment(text), ({ segment }) => segment);
+  return text.match(/[^。！？.!?]+(?:[。！？.!?]+\s*|$)|[。！？.!?]+\s*/gu) ?? [text];
+}
+
+function sentenceFeatures(text) {
+  const tokens = words(text.toLowerCase());
+  const han = hanCount(text);
+  const chinese = han > tokens.length * 2;
+  const opening = chinese
+    ? text.match(/^[^\p{L}\p{N}]*(\p{Script=Han}{6})/u)?.[1]
+    : tokens.length >= 2 ? tokens.slice(0, 2).join(' ') : '';
+  return {
+    text,
+    han,
+    words: tokens.length,
+    language: chinese ? 'zh' : 'en',
+    length: chinese ? han : tokens.length,
+    opening,
+    hasTemplate: (chinese ? chineseTemplates : englishTemplates).test(text),
+    signals: new Set(),
+    reasons: new Set(),
+  };
+}
+
+function compareSentences(group, minLength) {
+  if (group.length < 2) return;
+  const hasDenseTemplates = group.filter(sentence => sentence.hasTemplate).length >= 2;
+  const openings = new Map();
+  for (const { opening } of group) {
+    if (opening) openings.set(opening, (openings.get(opening) ?? 0) + 1);
+  }
+
+  const comparable = group.filter(sentence => sentence.length >= minLength);
+  let similarLengths = false;
+  if (comparable.length >= 4) {
+    const mean = comparable.reduce((sum, sentence) => sum + sentence.length, 0) / comparable.length;
+    const variance = comparable.reduce((sum, sentence) => sum + (sentence.length - mean) ** 2, 0) / comparable.length;
+    similarLengths = Math.sqrt(variance) / mean <= .25;
+  }
+
+  for (const sentence of group) {
+    const hits = [];
+    if (hasDenseTemplates && sentence.hasTemplate) hits.push(signalNames[0]);
+    if (similarLengths && sentence.length >= minLength) hits.push(signalNames[1]);
+    if (openings.get(sentence.opening) >= 2) hits.push(signalNames[2]);
+    for (const signal of hits) {
+      sentence.signals.add(signal);
+      if (hits.length >= 2) sentence.reasons.add(signal);
+    }
+  }
+}
+
+function reviewWindows(sentences) {
+  const windows = Math.max(1, sentences.length - WINDOW_SIZE + 1);
+  for (let start = 0; start < windows; start++) {
+    const nearby = sentences.slice(start, start + WINDOW_SIZE);
+    compareSentences(nearby.filter(sentence => sentence.language === 'en'), 10);
+    compareSentences(nearby.filter(sentence => sentence.language === 'zh'), 16);
+  }
+}
+
+function groupHighlights(sentences) {
+  const blocks = [];
+  for (const sentence of sentences) {
+    const reasons = signalNames.filter(signal => sentence.reasons.has(signal));
+    const previous = blocks.at(-1);
+    if (previous && previous.reasons.join() === reasons.join()) {
+      previous.text += sentence.text;
+    } else {
+      blocks.push({ text: sentence.text, reasons });
+    }
+  }
+  return blocks;
+}
+
+function analyze(text) {
+  if (text.length > MAX_CHARACTERS) return { error: '稿件太长，请缩短后再试。' };
+  const input = text.trim().replace(/\r\n?/g, '\n');
+  if (!input) return { error: '请先粘贴正文，或拖入稿件文件。' };
+
+  const tokens = words(input);
+  const totals = { han: hanCount(input), words: tokens.length };
+  const size = totals.han + totals.words;
+  const supportedLetters = totals.han + (input.match(/\p{Script=Latin}/gu)?.length ?? 0);
+  const allLetters = input.match(/\p{L}/gu)?.length ?? 0;
+  const englishCount = tokens.reduce((sum, word) => sum + Number(englishWords.has(word.toLowerCase())), 0);
+  if (supportedLetters < allLetters * .85 || (totals.han === 0 && totals.words >= MIN_UNITS && englishCount / totals.words < .10)) {
+    return { error: '请提供中文或英文正文。' };
+  }
+  if (size < MIN_UNITS) return { error: '请至少提供 120 字或词，中英混排时相加计算。' };
+  if (size > MAX_UNITS) return { error: '超过 30,000 字或词。请缩短稿件后再检测。' };
+
+  const paragraphs = input.split(/\n(?:[\t ]*\n)+/u)
+    .map(paragraph => splitSentences(paragraph).map(sentenceFeatures));
+  const sentences = paragraphs.flat().filter(sentence => sentence.han + sentence.words > 0);
+  if (sentences.length < 4) return { error: '请提供至少 4 个句子，并保留句末标点。' };
+  reviewWindows(sentences);
+
+  const signalCounts = new Map(signalNames.map(signal => [signal, 0]));
+  const flagged = { han: 0, words: 0 };
+  for (const sentence of sentences) {
+    for (const signal of sentence.signals) signalCounts.set(signal, signalCounts.get(signal) + 1);
+    if (sentence.reasons.size > 0) {
+      flagged.han += sentence.han;
+      flagged.words += sentence.words;
+    }
+  }
+
+  const blocks = paragraphs.map(groupHighlights);
+  return {
+    paragraphs: blocks,
+    totals,
+    flagged,
+    signalCounts,
+    flaggedBlocks: blocks.flat().filter(block => block.reasons.length > 0).length,
+    percentage: (flagged.han + flagged.words) / size * 100,
+  };
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_XML_SIZE = 8 * 1024 * 1024;
+const DOCX_PATH = 'word/document.xml';
+const WORD_NAMESPACES = new Set([
+  'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+  'http://purl.oclc.org/ooxml/wordprocessingml/main',
+]);
+
+function readZipEntry(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  let end = bytes.length - 22;
+  while (end >= Math.max(0, bytes.length - 65_557)) {
+    if (view.getUint32(end, true) === 0x06054b50
+      && end + 22 + view.getUint16(end + 20, true) === bytes.length) break;
+    end--;
+  }
+
+  if (end < Math.max(0, bytes.length - 65_557)
+    || view.getUint16(end + 4, true) !== 0 || view.getUint16(end + 6, true) !== 0) {
+    throw new Error('无法读取此 DOCX，请另存为普通的 Word 文档再试。');
+  }
+
+  let offset = view.getUint32(end + 16, true);
+  const directoryEnd = offset + view.getUint32(end + 12, true);
+  const count = view.getUint16(end + 10, true);
+  const decoder = new TextDecoder();
+  if (directoryEnd > end) throw new Error('DOCX 文件内容不完整。');
+
+  for (let index = 0; index < count && offset + 46 <= directoryEnd; index++) {
+    if (view.getUint32(offset, true) !== 0x02014b50) break;
+    const nameEnd = offset + 46 + view.getUint16(offset + 28, true);
+    const next = nameEnd + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
+    if (next > directoryEnd) break;
+    const name = decoder.decode(bytes.subarray(offset + 46, nameEnd));
+    if (name === DOCX_PATH) {
+      const flags = view.getUint16(offset + 8, true);
+      const method = view.getUint16(offset + 10, true);
+      const compressedSize = view.getUint32(offset + 20, true);
+      const size = view.getUint32(offset + 24, true);
+      const localOffset = view.getUint32(offset + 42, true);
+      if (flags & 1) throw new Error('请先移除 Word 文档的密码保护。');
+      if (size > MAX_XML_SIZE) throw new Error('DOCX 正文超出可读取大小。');
+      if (localOffset + 30 > offset || view.getUint32(localOffset, true) !== 0x04034b50) break;
+      const start = localOffset + 30 + view.getUint16(localOffset + 26, true) + view.getUint16(localOffset + 28, true);
+      if (start + compressedSize > offset) break;
+      return { bytes: bytes.subarray(start, start + compressedSize), method, size };
+    }
+    offset = next;
+  }
+
+  throw new Error('无法在 DOCX 中读取正文。');
+}
+
+async function readDocxXml(buffer) {
+  const entry = readZipEntry(buffer);
+  if (entry.method === 0 && entry.bytes.length === entry.size) return new TextDecoder().decode(entry.bytes);
+  if (entry.method !== 8) throw new Error('不支持此 DOCX 的压缩格式。');
+
+  let decompression;
+  try {
+    decompression = new DecompressionStream('deflate-raw');
+  } catch {
+    throw new Error('当前浏览器无法解压 DOCX，请另存为 TXT 后导入。');
+  }
+
+  const reader = new Blob([entry.bytes]).stream().pipeThrough(decompression).getReader();
+  const decoder = new TextDecoder();
+  const chunks = [];
+  let received = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > entry.size) {
+        await reader.cancel();
+        throw new Error('DOCX 的解压长度无效。');
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  if (received !== entry.size) throw new Error('DOCX 文件内容不完整。');
+  return chunks.join('') + decoder.decode();
+}
+
+function wordText(xml) {
+  if (/<!DOCTYPE/i.test(xml)) throw new Error('DOCX 正文包含不支持的 XML 声明。');
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const ns = doc.documentElement.namespaceURI;
+  const body = WORD_NAMESPACES.has(ns) && doc.getElementsByTagNameNS(ns, 'body')[0];
+  if (!body) throw new Error('无法读取 DOCX 正文。');
+
+  const paragraphs = Array.from(body.getElementsByTagNameNS(ns, 'p'));
+  return paragraphs.map(paragraph => {
+    const walker = doc.createTreeWalker(paragraph, NodeFilter.SHOW_ELEMENT, node => {
+      if (node.namespaceURI === ns && node.localName === 'p') return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    });
+    const pieces = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.namespaceURI !== ns) continue;
+      if (node.localName === 't') pieces.push(node.textContent);
+      if (node.localName === 'tab') pieces.push('\t');
+      if (node.localName === 'br' || node.localName === 'cr') pieces.push('\n');
+    }
+    return pieces.join('').trim();
+  }).filter(Boolean).join('\n\n');
+}
+
+function readPlainText(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let encoding = 'utf-8';
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) encoding = 'utf-16le';
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) encoding = 'utf-16be';
+  const text = new TextDecoder(encoding, { fatal: true }).decode(bytes);
+  if (text.includes('\0')) throw new Error('请导入纯文本文件。');
+  return text;
+}
+
+async function importFile(file) {
+  if (file.size > MAX_FILE_SIZE) throw new Error('文件须小于或等于 10 MB。');
+  const extension = file.name.split('.').at(-1)?.toLowerCase();
+  if (extension !== 'txt' && extension !== 'docx') throw new Error('请选择 TXT 或 DOCX 文件。');
+  const buffer = await file.arrayBuffer();
+  let text;
+  try {
+    text = extension === 'docx' ? wordText(await readDocxXml(buffer)) : readPlainText(buffer);
+  } catch (error) {
+    if (extension === 'txt') throw new Error('无法读取 TXT，请用 UTF-8 编码保存后再试。');
+    throw new Error(error?.message?.match(/^[\p{Script=Han}]/u) ? error.message : '无法读取此 DOCX。请确认文件能够在 Word 中正常打开。');
+  }
+  if (!text.trim()) throw new Error('未找到可读取的正文。');
+  if (text.length > MAX_CHARACTERS) throw new Error('稿件太长，请缩短后再导入。');
+  return text;
+}
+
+const sample = `On Wednesday I came back to the campus library to check whether anybody had moved the spare reading lamps. Two lamps were missing. The librarian remembered lending one to a student who stayed until closing. I found the other near the window, where someone had shifted it to make room for a second monitor. A small detail from my first visit turned out to matter. The sockets along that wall were the only ones at desk height, so students had pulled their chairs away from the brighter seats to charge their laptops.
+
+Furthermore, it is important to note that lighting plays a crucial role in shaping the overall student experience. Furthermore, it is important to note that flexible furniture provides a wide range of benefits for diverse library users. In addition, it is worth noting that convenient charging plays a pivotal role in supporting productive study sessions. In addition, it is worth noting that quiet environments contribute to a more effective learning experience for students. In conclusion, it is evident that an integrated approach can enhance the library experience across a wide range of settings.
+
+I asked the librarian how she would spend a small renovation budget. Her answer surprised me. She wanted another storage cupboard first. According to her shift notes, students commonly left their bags in the aisle because they couldn't find a safe spot nearby. If we moved the cupboard next to the circulation desk, she said, we could test a solution without buying anything. Next week I plan to count the bags twice, before and after the afternoon rush, and compare those numbers with my notes from Monday.`;
+
+const chineseSample = `星期三傍晚，我去图书馆找两盏搬走的台灯。一盏借给了留到闭馆的同学，另一盏在窗边。那排桌子有四个插座，但靠走廊的两个都坏了。管理员说，她早上会先巡一遍，把被拖到过道上的椅子摆回去。
+
+值得注意的是，改善照明对提升学习空间的使用体验至关重要。值得注意的是，增设插座能够为学生使用个人设备提供有力支撑。需要指出的是，灵活的座位安排在优化学习环境方面发挥着重要作用。需要指出的是，完善设施配置对于进一步推动空间利用具有重要意义。综上所述，综合改善各项设施有助于为不同需求的学生提供更好的服务。
+
+管理员最想添置的是储物柜。我问她为什么，她指了指门边那排背包。上周有人过来还书，转身时差点被绊倒。下周我打算在下午三点和五点各记一次，看看过道上的包有多少，再决定把柜子摆在哪里。`;
+
+const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+const byId = id => document.getElementById(id);
+const input = byId('manuscript');
+const count = byId('word-count');
+const clear = byId('clear');
+const editor = byId('editor-panel');
+const upload = byId('file-input');
+const importButton = byId('import');
+const scan = byId('scan');
+const sampleButton = byId('sample');
+const chineseSampleButton = byId('sample-zh');
+const error = byId('editor-error');
+const fileStatus = byId('file-status');
+const score = byId('score-value');
+const scoreRing = byId('score-ring');
+const status = byId('result-status');
+const detail = byId('result-detail');
+const report = byId('report');
+const reportText = byId('report-text');
+const fragmentDetail = byId('fragment-detail');
+const signalSummary = byId('signal-summary');
+const filter = byId('filter');
+const method = byId('method');
+
+let currentResult = null;
+let editRevision = 0;
+let dragDepth = 0;
+
+function formatCounts({ han, words }) {
+  const parts = [];
+  if (han) parts.push(numberFormat.format(han) + ' 字');
+  if (words) parts.push(numberFormat.format(words) + ' 词');
+  return parts.join(' · ') || '0 字 / 词';
+}
+
+function formatResultCounts({ totals, flagged }) {
+  const parts = [];
+  if (totals.han) parts.push(numberFormat.format(flagged.han) + ' / ' + numberFormat.format(totals.han) + ' 字');
+  if (totals.words) parts.push(numberFormat.format(flagged.words) + ' / ' + numberFormat.format(totals.words) + ' 词');
+  return parts.join(' · ');
+}
+
+function showError(message = '') {
+  error.hidden = !message;
+  error.textContent = message;
+  if (message) input.setAttribute('aria-invalid', 'true');
+  else input.removeAttribute('aria-invalid');
+}
+
+function showFileStatus(message = '') {
+  fileStatus.hidden = !message;
+  fileStatus.textContent = message;
+}
+
+function resetReport(edited = false) {
+  currentResult = null;
+  score.textContent = '—';
+  scoreRing.style.setProperty('--progress', '0%');
+  status.textContent = edited ? '稿件已修改' : '等待检测';
+  detail.textContent = edited ? '重新检测即可查看最新结果。' : '检测后可查看各项规则的命中情况。';
+  report.hidden = true;
+  reportText.replaceChildren();
+  filter.checked = false;
+}
+
+function syncEditor() {
+  editRevision++;
+  count.textContent = formatCounts(textCounts(input.value));
+  clear.hidden = !input.value;
+  showError();
+  showFileStatus();
+  if (currentResult || status.textContent === '稿件已修改') resetReport(Boolean(input.value.trim()));
+}
+
+function setManuscript(text) {
+  input.value = text;
+  syncEditor();
+  input.scrollTop = 0;
+}
+
+function addMarkedBlock(paragraph, block, id) {
+  const text = document.createElement('mark');
+  text.className = 'fragment-text';
+  text.tabIndex = 0;
+  text.setAttribute('role', 'button');
+  text.setAttribute('aria-expanded', 'false');
+  text.setAttribute('aria-controls', id);
+  text.textContent = block.text.trimEnd();
+  const reasons = document.createElement('span');
+  reasons.className = 'fragment-reasons';
+  reasons.id = id;
+  reasons.lang = 'zh-Hans';
+  reasons.hidden = true;
+  reasons.textContent = '标记原因 · ' + block.reasons.join('、');
+
+  function toggleReasons() {
+    reasons.hidden = !reasons.hidden;
+    text.setAttribute('aria-expanded', String(!reasons.hidden));
+  }
+  text.addEventListener('click', toggleReasons);
+  text.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleReasons();
+    }
+  });
+
+  paragraph.append(text, reasons, document.createTextNode(block.text.slice(block.text.trimEnd().length)));
+}
+
+function renderReport() {
+  const onlyMarked = filter.checked;
+  const content = document.createDocumentFragment();
+  let marker = 0;
+  for (const blocks of currentResult.paragraphs) {
+    if (onlyMarked) {
+      for (const block of blocks.filter(block => block.reasons.length > 0)) {
+        const paragraph = document.createElement('p');
+        addMarkedBlock(paragraph, block, 'reason-' + ++marker);
+        content.append(paragraph);
+      }
+      continue;
+    }
+    const paragraph = document.createElement('p');
+    for (const block of blocks) {
+      if (block.reasons.length) addMarkedBlock(paragraph, block, 'reason-' + ++marker);
+      else paragraph.append(document.createTextNode(block.text));
+    }
+    content.append(paragraph);
+  }
+  reportText.replaceChildren(content);
+  fragmentDetail.hidden = marker > 0;
+  fragmentDetail.textContent = '没有句子在同一组内同时符合两项规则。上方仍会列出单项命中。';
+}
+
+function renderSignalSummary(result) {
+  const entries = Array.from(result.signalCounts, ([signal, hits]) => {
+    const entry = document.createElement('span');
+    entry.textContent = signal + ' ' + numberFormat.format(hits) + ' 句';
+    return entry;
+  });
+  signalSummary.replaceChildren(...entries);
+}
+
+function runScan() {
+  if (scan.disabled) return;
+  const result = analyze(input.value);
+  if (result.error) {
+    resetReport();
+    showError(result.error);
+    input.focus();
+    return;
+  }
+  showError();
+  currentResult = result;
+  const percentage = result.percentage;
+  let displayPercentage = numberFormat.format(percentage) + '%';
+  if (percentage > 0 && percentage < .1) displayPercentage = '<0.1%';
+  if (percentage > 99.9 && percentage < 100) displayPercentage = '>99.9%';
+  score.textContent = displayPercentage;
+  scoreRing.style.setProperty('--progress', percentage + '%');
+  status.textContent = result.flaggedBlocks ? '标记 ' + numberFormat.format(result.flaggedBlocks) + ' 个片段' : '未标记任何片段';
+  detail.textContent = formatResultCounts(result);
+  filter.checked = false;
+  filter.disabled = !result.flaggedBlocks;
+  renderSignalSummary(result);
+  renderReport();
+  report.hidden = false;
+}
+
+async function loadManuscript(files) {
+  if (!files.length || importButton.disabled) return;
+  if (files.length > 1) {
+    showFileStatus();
+    showError('请一次拖入一个 TXT 或 DOCX 文件。');
+    return;
+  }
+  const [file] = files;
+  const previousRevision = editRevision;
+  const controls = [importButton, scan, sampleButton, chineseSampleButton];
+  controls.forEach(control => { control.disabled = true; });
+  showError();
+  showFileStatus('正在读取文件…');
+  try {
+    const text = await importFile(file);
+    if (editRevision !== previousRevision) return;
+    setManuscript(text);
+    showFileStatus('已导入 ' + file.name);
+  } catch (failure) {
+    if (editRevision !== previousRevision) return;
+    showFileStatus();
+    showError(failure.message || '无法导入此文件。');
+  } finally {
+    controls.forEach(control => { control.disabled = false; });
+  }
+}
+
+function isFileDrag(event) {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files');
+}
+
+function endDrag() {
+  dragDepth = 0;
+  editor.classList.remove('is-dragging');
+}
+
+input.addEventListener('input', syncEditor);
+input.addEventListener('keydown', event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') runScan();
+});
+scan.addEventListener('click', runScan);
+sampleButton.addEventListener('click', () => {
+  setManuscript(sample);
+  runScan();
+});
+chineseSampleButton.addEventListener('click', () => {
+  setManuscript(chineseSample);
+  runScan();
+});
+clear.addEventListener('click', () => {
+  setManuscript('');
+  input.focus();
+});
+filter.addEventListener('change', renderReport);
+importButton.addEventListener('click', () => upload.click());
+upload.addEventListener('change', () => {
+  const files = Array.from(upload.files);
+  upload.value = '';
+  loadManuscript(files);
+});
+
+editor.addEventListener('dragenter', event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  dragDepth++;
+  if (!importButton.disabled) editor.classList.add('is-dragging');
+});
+editor.addEventListener('dragover', event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = importButton.disabled ? 'none' : 'copy';
+});
+editor.addEventListener('dragleave', event => {
+  if (isFileDrag(event) && --dragDepth <= 0) endDrag();
+});
+editor.addEventListener('drop', event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  endDrag();
+  loadManuscript(Array.from(event.dataTransfer.files));
+});
+window.addEventListener('dragover', event => {
+  if (isFileDrag(event)) event.preventDefault();
+});
+window.addEventListener('drop', event => {
+  if (isFileDrag(event)) {
+    event.preventDefault();
+    endDrag();
+  }
+});
+window.addEventListener('dragend', endDrag);
+
+document.querySelectorAll('[data-open-method]').forEach(button => {
+  button.addEventListener('click', () => method.showModal());
+});
+byId('close-method').addEventListener('click', () => method.close());
+method.addEventListener('click', event => {
+  if (event.target === method) {
+    const bounds = method.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom) method.close();
+  }
+});
+syncEditor();
+})();
+  </script>
+</body>
+</html>
