@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f6f3">
+  <meta name="description" content="在浏览器内预检英文稿件，查看被本地规则标记的文本和原因。">
+  <title>文迹 · AI 写作检测</title>
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+CiAgPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTEiIGZpbGw9IiMxMjYzNDgiLz4KICA8cGF0aCBkPSJNMTEgMTFoMTh2MThIMTF6bTQgNWgxMG0tMTAgNWg2bTQgNGg3bS0zLjUtMy41djciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==" type="image/svg+xml">
+  <style>
+:root {
+  color-scheme: light;
+  --background: #f3f6f3;
+  --surface: #fff;
+  --ink: #172c24;
+  --muted: #50665c;
+  --line: #dbe6df;
+  --green: #126348;
+  --green-deep: #104d3a;
+  --green-light: #e7f2ec;
+  --font: Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; min-width: 0; font-family: var(--font); color: var(--ink); background: var(--background); line-height: 1.6; }
+button, textarea { font: inherit; }
+button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+button:disabled { cursor: wait; opacity: .58; }
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 3px solid #398e70; outline-offset: 4px; }
+.icon-definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
+.icon { width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: middle; }
+.shell { width: min(72rem, calc(100% - 3rem)); margin-inline: auto; }
+.site-header { background: #fcfdfc; border-bottom: 1px solid var(--line); }
+.header-inner { min-height: 4.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.brand { display: inline-flex; align-items: center; gap: .68rem; font-size: 1.13rem; font-weight: 750; white-space: nowrap; }
+.brand:hover { text-decoration: none; }
+.brand-mark { width: 2.3rem; height: 2.3rem; border-radius: .64rem; display: grid; place-items: center; color: white; background: var(--green); }
+.brand-mark .icon { width: 1.4rem; height: 1.4rem; }
+.brand-divider { height: 1rem; width: 1px; background: var(--line); margin-inline: .22rem; }
+.brand-english { font-size: .85rem; color: var(--muted); font-weight: 560; letter-spacing: .015em; }
+.plain-button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; background: transparent; border: 0; border-radius: .42rem; padding: .38rem .52rem; color: var(--green-deep); font-size: .88rem; font-weight: 630; }
+.plain-button:hover { background: var(--green-light); }
+.nav-button { min-height: 2.5rem; }
+.hero {
+  isolation: isolate; position: relative; overflow: hidden;
+  margin-top: 1.8rem; padding: 1.8rem 2.35rem 1.85rem; min-height: 14.65rem;
+  display: flex; align-items: center; border-radius: 1.2rem;
+  background: radial-gradient(ellipse at 85% 30%, #25674f, transparent 58%), linear-gradient(116deg,#132c23 0%,#153f31 66%,#1b503d 100%); color: #fff;
+}
+.hero-copy { position: relative; z-index: 1; }
+.hero-label { width: fit-content; display: inline-flex; align-items: center; gap: .4rem; border: 1px solid #8ac5a65c; color: #d9f3e5; background: #91e7b91a; padding: .25rem .65rem; border-radius: 99rem; font-size: .81rem; font-weight: 640; letter-spacing: .02em; }
+.hero-label .icon { width: .9rem; height: .9rem; }
+h1, h2, p { margin: 0; }
+.hero h1 { margin: .4rem 0 .25rem; font-size: clamp(2.35rem, 5vw, 3.55rem); line-height: 1.25; letter-spacing: -.055em; font-weight: 770; }
+.hero p { font-size: 1rem; color: #e0efe7; }
+.hero-caption { display: block; margin-top: .68rem; font-size: .82rem; color: #c0dbcd; }
+.hero-art { position: absolute; top: 0; height: 100%; width: 44%; right: 0; background: radial-gradient(circle, #c0edcb45 1px, transparent 1.3px) right 8px top 4px / 13px 13px; mask-image: linear-gradient(to right, transparent, #000 20%); }
+.art-sheet { position: absolute; top: 50%; right: 24%; width: 8.4rem; height: 10.6rem; border-radius: .7rem; }
+.art-sheet-back { transform: translate(32%, -51%) rotate(14deg); background: #d7eddf2c; border: 1px solid #c2efcf51; }
+.art-sheet-front { transform: translateY(-50%) rotate(-9deg); background: #eef7f0; border: 1px solid #fff; box-shadow: 0 .75rem 2rem #102b2080; padding: .95rem; }
+.art-icon { color: #388268; width: 1.25rem; height: 1.25rem; }
+.art-lines { margin-top: .66rem; display: grid; gap: .48rem; }
+.art-lines span { height: .29rem; width: 100%; border-radius: 2rem; background: #8eae9e; }
+.art-lines .art-short { width: 59%; }
+.art-lines .art-marked { width: 91%; background: #449d76; box-shadow: 0 0 0 .18rem #c8edd3; }
+.art-lines .art-marked-short { width: 69%; margin-bottom: .18rem; }
+.art-scan { position: absolute; right: 14%; top: 60%; width: 3rem; height: 3rem; border-radius: .75rem; display: grid; place-items: center; background: #b4e5c9; color: #194c38; box-shadow: 0 .3rem 1rem #102b204d; transform: rotate(8deg); }
+.art-scan .icon { width: 1.4rem; height: 1.4rem; }
+
+.workspace { display: grid; grid-template-columns: minmax(0, 1.57fr) minmax(0, 1fr); gap: 1.12rem; margin-top: 1.18rem; }
+.panel { min-width: 0; padding: 1.28rem; border: 1px solid var(--line); border-radius: 1.05rem; background: var(--surface); box-shadow: 0 3px 11px #203b2c06; }
+.panel-head { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .7rem; margin-bottom: 1.05rem; }
+.panel-heading { display: flex; align-items: center; gap: .72rem; min-width: 0; }
+.panel-heading h2, .dialog-top h2 { font-size: 1.18rem; line-height: 1.35; letter-spacing: -.02em; font-weight: 740; }
+.panel-heading p { margin-top: .18rem; font-size: .84rem; line-height: 1.5; color: var(--muted); }
+.panel-icon { flex: none; display: grid; place-items: center; width: 2.45rem; height: 2.45rem; border-radius: .64rem; background: var(--green-light); color: var(--green); }
+.panel-icon .icon { width: 1.24rem; height: 1.24rem; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: .42rem; min-height: 2.45rem; border-radius: .56rem; border: 1px solid transparent; padding: .47rem .85rem; font-size: .875rem; line-height: 1.45; font-weight: 690; white-space: nowrap; }
+.button-secondary { border-color: var(--line); color: var(--green-deep); background: white; }
+.button-secondary:hover { background: #eff7f2; border-color: #afccbc; }
+.button-primary { min-height: 2.68rem; padding-inline: 1.05rem; background: var(--green); color: white; box-shadow: 0 2px 5px #15574026; }
+.button-primary:hover { background: #104e3a; }
+.editor-box { border: 1px solid var(--line); border-radius: .74rem; overflow: hidden; background: #f8faf8; }
+.editor-box:focus-within { border-color: #398e70; box-shadow: 0 0 0 2px #4f9b7e33; }
+textarea { width: 100%; height: 12.4rem; min-height: 8.8rem; display: block; resize: vertical; background: transparent; border: 0; padding: .95rem 1rem; outline: none !important; line-height: 1.66; color: var(--ink); font-size: 1rem; }
+textarea::placeholder { color: #61776c; opacity: 1; }
+.editor-meta { min-height: 2.35rem; padding: .15rem .72rem .2rem 1rem; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .83rem; }
+.editor-meta .plain-button { font-size: .83rem; }
+.editor-actions { display: flex; align-items: center; justify-content: space-between; gap: .65rem; margin-top: .96rem; }
+.file-status, .error { font-size: .87rem; margin-top: .5rem; overflow-wrap: anywhere; }
+.file-status { color: var(--muted); }
+.error { color: #a02f25; }
+.result-panel { display: flex; flex-direction: column; }
+.result-head { margin-bottom: 0; }
+.result-content { flex: 1; min-width: 0; padding: 1rem 0; text-align: center; display: grid; justify-items: center; align-content: center; }
+.score-wrap { position: relative; display: grid; place-items: center; margin-bottom: .54rem; }
+.score-ring { --progress: 0%; width: 8.85rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(#228761 var(--progress), #e6efe9 var(--progress)); }
+.score-text { width: calc(100% - 16px); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .22rem; border-radius: 50%; background: #fff; }
+#score-value { font-family: system-ui, sans-serif; font-size: 2.15rem; font-weight: 740; line-height: 1; letter-spacing: -.055em; font-variant-numeric: tabular-nums; color: var(--green-deep); }
+.score-label { color: var(--muted); font-size: .78rem; font-weight: 550; }
+.result-status { font-weight: 700; font-size: 1rem; }
+.result-detail { color: var(--muted); font-size: .85rem; margin-top: .19rem; }
+.result-note { display: flex; gap: .52rem; align-items: flex-start; border: 1px solid #e0ebe3; border-radius: .65rem; padding: .6rem .7rem; background: #f3f8f4; color: #3d5b4d; font-size: .85rem; }
+.result-note .icon { margin-top: .13rem; width: 1rem; height: 1rem; }
+.report-panel { margin-top: 1.12rem; }
+.filter { display: inline-flex; align-items: center; gap: .35rem; color: var(--green-deep); font-size: .86rem; font-weight: 620; }
+.filter input { accent-color: var(--green); width: 1rem; height: 1rem; }
+.report-text { padding: .2rem clamp(0rem, 4vw - 1rem, 3rem) .65rem; max-width: 85ch; line-height: 1.85; overflow-wrap: anywhere; }
+.report-text p { margin-top: .8rem; white-space: pre-wrap; }
+.fragment-text { display: inline; border: 0; padding: .1em 0; text-align: inherit; border-radius: .2rem; background: #fff1bd; line-height: inherit; color: inherit; cursor: pointer; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.fragment-text:hover, .fragment-text[aria-expanded="true"] { background: #fbe298; }
+.fragment-reasons { display: block; margin: .42rem 0 .65rem; padding: .42rem .58rem; border-left: 3px solid #d8b341; border-radius: .27rem; color: #574822; background: #fffae9; font-size: .86rem; }
+.fragment-detail { color: var(--muted); font-size: .9rem; }
+.site-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .65rem 1rem; color: var(--muted); font-size: .82rem; padding: 1.15rem 0 1.45rem; }
+.site-footer span { display: flex; align-items: center; gap: .36rem; }
+.site-footer .icon { width: .9rem; height: .9rem; color: var(--green); }
+.site-footer a { text-decoration: underline; text-decoration-color: #b5c8bd; text-underline-offset: .17em; }
+.site-footer a:hover { text-decoration-color: currentColor; }
+dialog { width: min(35rem, calc(100vw - 2rem)); max-block-size: calc(100% - 2rem); padding: 1.4rem; color: var(--ink); border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 1rem 3rem #1a30264d; }
+dialog::backdrop { background: #132d2373; }
+.dialog-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .7rem; }
+.close-button { padding: .45rem; min-height: 2.4rem; width: 2.4rem; }
+dialog p + p { margin-top: .6rem; }
+dialog dt { color: var(--green-deep); font-weight: 700; margin-bottom: .12rem; }
+dialog dd { margin: 0 0 .55rem; color: var(--muted); }
+@media (max-width: 760px) {
+  .shell { width: calc(100% - 2rem); }
+  .workspace { grid-template-columns: 1fr; }
+  .hero { margin-top: 1.2rem; padding-inline: 1.35rem; }
+  .hero-art { width: 43%; right: -1%; }
+  .result-content { padding: 1.15rem 0; }
+}
+@media (max-width: 520px) {
+  .shell { width: calc(100% - 1.4rem); }
+  .header-inner { min-height: 3.65rem; }
+  .brand-english { display: none; }
+  .brand-divider { display: none; }
+  .hero { border-radius: .92rem; min-height: 0; padding: 1.25rem 1rem 1.35rem; }
+  .hero-art { display: none; }
+  .hero h1 { margin-block: .48rem .3rem; }
+  .panel { padding: .95rem; }
+  .panel-head { gap: .5rem; align-items: flex-start; }
+  .panel-heading { gap: .5rem; }
+  .panel-heading p { font-size: .78rem; }
+  .panel-icon { width: 2rem; height: 2rem; }
+  .panel-icon .icon { width: 1.1rem; height: 1.1rem; }
+  .button { padding-inline: .6rem; }
+  .button-primary { padding-inline: .75rem; }
+  .report-head { flex-wrap: wrap; }
+  .site-footer { padding-bottom: 1rem; }
+}
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-definitions" aria-hidden="true">
+    <symbol id="i-logo" viewBox="0 0 24 24"><path d="M4 4.5h16v15H4zM8 9h8m-8 4h5"/><path d="M16 16h5m-2.5-2.5v5" stroke-width="1.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10zm0 0v7h7M8 14h8m-8 3h5"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4m-4 4 4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3m0 6v3a2 2 0 0 1-2 2h-3m-6 0H6a2 2 0 0 1-2-2v-3m3-3h10"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 4v16h16M8 16v-4m5 4V7m5 9V4"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="#" aria-label="文迹首页">
+        <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-logo"/></svg></span>
+        <span>文迹</span><span class="brand-divider"></span><span class="brand-english">Writing Lab</span>
+      </a>
+      <button type="button" class="plain-button nav-button" data-open-method>
+        <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>检测说明
+      </button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <div class="hero-label"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>本地检测 · 无需上传</div>
+        <h1 id="page-title">AI 写作检测</h1>
+        <p>预检英文稿件，查看被标记的段落与写作特征。</p>
+        <span class="hero-caption">独立预检工具，非 Turnitin 官方服务</span>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="art-sheet art-sheet-back"></div>
+        <div class="art-sheet art-sheet-front">
+          <svg class="icon art-icon"><use href="#i-file"/></svg>
+          <div class="art-lines">
+            <span></span><span></span><span class="art-short"></span>
+            <span class="art-marked"></span><span class="art-marked art-marked-short"></span>
+            <span></span><span class="art-short"></span>
+          </div>
+        </div>
+        <div class="art-scan"><svg class="icon"><use href="#i-scan"/></svg></div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel editor-panel" aria-labelledby="editor-title">
+        <div class="panel-head">
+          <div class="panel-heading">
+            <span class="panel-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+            <div><h2 id="editor-title"><label for="manuscript">输入稿件</label></h2><p id="editor-help">英文正文 · 120–30,000 词 · TXT / DOCX</p></div>
+          </div>
+          <button type="button" class="button button-secondary" id="sample">试用示例</button>
+        </div>
+        <div class="editor-box">
+          <textarea id="manuscript" placeholder="在此粘贴或输入英文正文…" aria-describedby="editor-help" maxlength="350000" spellcheck="false" autocomplete="off" dir="auto"></textarea>
+          <div class="editor-meta">
+            <span id="word-count">0 词</span>
+            <button type="button" class="plain-button" id="clear" hidden>清空</button>
+          </div>
+        </div>
+        <p class="file-status" id="file-status" role="status" hidden></p>
+        <p class="error" id="editor-error" role="alert" hidden></p>
+        <div class="editor-actions">
+          <input id="file-input" type="file" accept=".txt,.docx" hidden>
+          <button type="button" class="button button-secondary file-button" id="import"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>导入文件</button>
+          <button type="button" class="button button-primary" id="scan"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>开始检测</button>
+        </div>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="result-title">
+        <div class="panel-head result-head">
+          <div class="panel-heading">
+            <span class="panel-icon"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg></span>
+            <div><h2 id="result-title">检测结果</h2><p>本地规则分析</p></div>
+          </div>
+        </div>
+        <div class="result-content">
+          <div class="score-wrap">
+            <div class="score-ring" id="score-ring">
+              <div class="score-text"><span id="score-value">—</span><span class="score-label">标记文本占比</span></div>
+            </div>
+          </div>
+          <p class="result-status" id="result-status" role="status">等待检测</p>
+          <p class="result-detail" id="result-detail">完成检测后，高亮稿件会显示在下方。</p>
+        </div>
+        <div class="result-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><p>结果仅反映本工具识别的写作特征，无法判定文章是否由 AI 撰写。</p></div>
+      </section>
+    </div>
+
+    <section class="panel report-panel" id="report" aria-labelledby="report-title" hidden>
+      <div class="panel-head report-head">
+        <div class="panel-heading">
+          <span class="panel-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+          <div><h2 id="report-title">稿件标记</h2><p>点击高亮文字，查看触发的规则。</p></div>
+        </div>
+        <label class="filter"><input id="filter" type="checkbox"> 仅显示标记片段</label>
+      </div>
+      <p class="fragment-detail" id="fragment-detail" role="status" hidden></p>
+      <div class="report-text" id="report-text" lang="en"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer shell">
+    <span><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>稿件仅在当前浏览器页面内处理</span>
+    <a href="https://guides.turnitin.com/hc/en-us/articles/22774058814093-Using-the-AI-Writing-Report" target="_blank" rel="noopener noreferrer">Turnitin 官方报告说明</a>
+  </footer>
+
+  <dialog id="method" aria-labelledby="method-title">
+    <div class="dialog-top">
+      <h2 id="method-title">如何理解检测结果</h2>
+      <button type="button" class="plain-button close-button" id="close-method" aria-label="关闭说明"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p>文迹将英文正文按段落和句子分成片段。一个片段同时触发以下至少两项规则时，会被高亮。</p>
+    <dl>
+      <dt>常见套语较密集</dt><dd>多句话使用本工具词表中的固定过渡语或惯用开头。</dd>
+      <dt>句子长度接近</dt><dd>至少四句话，且各句词数变化较小。</dd>
+      <dt>句首结构重复</dt><dd>同一片段内，多句话使用相同的开头词组或同一个实义开头词。</dd>
+    </dl>
+    <p>标记文本占比 = 标记片段词数 ÷ 全文词数。该比例是规则命中的范围。人工写作也可能被标记，AI 写作也可能漏标。</p>
+    <p>Turnitin AI 写作分数由其官方系统出具。查看本工具的结果无法推算学校报告中的分数。</p>
+  </dialog>
+  <script>
+(() => {
+'use strict';
+
+const MIN_WORDS = 120;
+const MAX_WORDS = 30_000;
+const MAX_CHARACTERS = 350_000;
+
+const wordPattern = /\p{Script=Latin}+(?:[’'-]\p{Script=Latin}+)*/gu;
+const sentenceSegmenter = typeof Intl.Segmenter === 'function'
+  ? new Intl.Segmenter('en', { granularity: 'sentence' })
+  : null;
+const stockPhrases = /\b(?:it is important to (?:note|recognize|recognise|consider) that|it is worth noting that|it is essential to (?:note|recognize|recognise|consider)|it is clear that|it is evident that|it is crucial to|it should be noted that|in (?:today[’']s|the) rapidly (?:evolving|changing) (?:landscape|world)|plays? (?:a |an )?(?:pivotal|crucial|vital) role|a wide range of|a nuanced understanding of|delve into|in conclusion|in summary|to sum up|taken together|on the other hand|in addition|as a result|furthermore|moreover|consequently|ultimately)\b/gi;
+const grammaticalOpeners = new Set([
+  'a', 'an', 'the', 'i', 'he', 'she', 'they', 'we', 'it', 'this', 'that', 'these',
+  'those', 'there', 'when', 'if', 'in', 'by', 'with', 'to', 'for', 'as', 'after',
+  'before', 'and', 'but', 'of', 'on', 'is', 'were', 'was', 'are', 'at', 'from'
+]);
+const englishWords = new Set([
+  'the', 'a', 'an', 'of', 'and', 'or', 'but', 'in', 'to', 'for', 'from',
+  'is', 'are', 'was', 'were', 'be', 'been', 'by', 'with', 'on', 'at', 'that',
+  'which', 'as', 'will', 'has', 'have', 'had', 'can', 'could', 'may', 'would',
+  'should', 'its', 'our', 'their', 'his', 'her', 'this', 'these', 'those',
+  'it', 'i', 'you', 'we', 'they', 'he', 'she', 'who', 'when', 'how', 'there',
+  'some', 'more', 'other', 'not', 'than', 'between', 'into', 'about'
+]);
+
+function words(text) {
+  return text.match(wordPattern) ?? [];
+}
+
+function sentences(text) {
+  if (sentenceSegmenter) return Array.from(sentenceSegmenter.segment(text), ({ segment }) => segment);
+  return text.match(/[^.!?]+(?:[.!?]+\s*|$)|[.!?]+\s*/g) ?? [text];
+}
+
+function segmentParagraph(paragraph) {
+  const allSentences = sentences(paragraph).map(text => ({ text, tokens: words(text.toLowerCase()) }));
+  const chunkCount = Math.ceil(allSentences.length / 6);
+  return Array.from({ length: chunkCount }, (_, index) => {
+    const start = Math.floor(index * allSentences.length / chunkCount);
+    const end = Math.floor((index + 1) * allSentences.length / chunkCount);
+    return allSentences.slice(start, end);
+  });
+}
+
+function hasRepeatedOpening(block) {
+  const starts = new Map();
+  const firstWords = new Map();
+  for (const { tokens } of block) {
+    if (tokens.length < 2) continue;
+    const [first, second] = tokens;
+    const pair = first + ' ' + second;
+    starts.set(pair, (starts.get(pair) ?? 0) + 1);
+    if (!grammaticalOpeners.has(first)) firstWords.set(first, (firstWords.get(first) ?? 0) + 1);
+  }
+  return [...starts.values()].some(count => count >= 2)
+    || [...firstWords.values()].some(count => count >= 3);
+}
+
+function scoreBlock(chunk) {
+  const block = chunk.filter(sentence => sentence.tokens.length > 0);
+  const wordCount = block.reduce((sum, sentence) => sum + sentence.tokens.length, 0);
+  const reasons = [];
+  const matchingSentences = block.filter(sentence => sentence.text.match(stockPhrases)).length;
+  if (matchingSentences >= 2 && matchingSentences >= Math.ceil(block.length * .35)) {
+    reasons.push('常见套语较密集');
+  }
+
+  if (block.length >= 4) {
+    const average = wordCount / block.length;
+    const variance = block.reduce((sum, { tokens }) => sum + (tokens.length - average) ** 2, 0) / block.length;
+    if (average >= 10 && Math.sqrt(variance) / average <= .22) reasons.push('句子长度接近');
+    if (hasRepeatedOpening(block)) reasons.push('句首结构重复');
+  }
+
+  return {
+    text: chunk.map(sentence => sentence.text).join(''),
+    wordCount,
+    sentenceCount: block.length,
+    reasons: reasons.length >= 2 ? reasons : [],
+  };
+}
+
+function analyze(text) {
+  if (text.length > MAX_CHARACTERS) return { error: '稿件太长，请缩短后再试。' };
+  const input = text.trim();
+  if (!input) return { error: '请先粘贴正文，或导入英文稿件。' };
+  const latinLetters = input.match(/\p{Script=Latin}/gu)?.length ?? 0;
+  const allLetters = input.match(/\p{L}/gu)?.length ?? 0;
+  const tokens = words(input);
+  const totalWords = tokens.length;
+  const englishCount = tokens.reduce((count, word) => count + Number(englishWords.has(word.toLowerCase())), 0);
+  if (latinLetters < allLetters * .85 || (totalWords >= MIN_WORDS && englishCount / totalWords < .12)) {
+    return { error: '此工具面向英文正文，请检查输入的语言。' };
+  }
+  if (totalWords < MIN_WORDS) return { error: '请至少输入 120 个英文词。当前为 ' + totalWords + ' 词。' };
+  if (totalWords > MAX_WORDS) return { error: '超过 30,000 词。请缩短稿件后再检测。' };
+
+  const paragraphs = input.split(/(?:\r?\n[\t ]*){2,}/u)
+    .map(paragraph => segmentParagraph(paragraph).map(scoreBlock));
+  const blocks = paragraphs.flat();
+  if (blocks.reduce((sum, block) => sum + block.sentenceCount, 0) < 5) {
+    return { error: '请提供至少 5 个英文句子，并保留句末标点。' };
+  }
+
+  const flagged = blocks.filter(block => block.reasons.length > 0);
+  const flaggedWords = flagged.reduce((sum, block) => sum + block.wordCount, 0);
+  return {
+    paragraphs,
+    totalWords,
+    flaggedWords,
+    flaggedBlocks: flagged.length,
+    percentage: flaggedWords / totalWords * 100,
+  };
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_XML_SIZE = 8 * 1024 * 1024;
+const DOCX_PATH = 'word/document.xml';
+const WORD_NAMESPACES = new Set([
+  'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+  'http://purl.oclc.org/ooxml/wordprocessingml/main',
+]);
+
+function readZipEntry(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  let end = bytes.length - 22;
+  while (end >= Math.max(0, bytes.length - 65_557)) {
+    if (view.getUint32(end, true) === 0x06054b50
+      && end + 22 + view.getUint16(end + 20, true) === bytes.length) break;
+    end--;
+  }
+
+  if (end < Math.max(0, bytes.length - 65_557)
+    || view.getUint16(end + 4, true) !== 0 || view.getUint16(end + 6, true) !== 0) {
+    throw new Error('无法读取此 DOCX，请另存为普通的 Word 文档再试。');
+  }
+
+  let offset = view.getUint32(end + 16, true);
+  const directoryEnd = offset + view.getUint32(end + 12, true);
+  const count = view.getUint16(end + 10, true);
+  const decoder = new TextDecoder();
+  if (directoryEnd > end) throw new Error('DOCX 文件内容不完整。');
+
+  for (let index = 0; index < count && offset + 46 <= directoryEnd; index++) {
+    if (view.getUint32(offset, true) !== 0x02014b50) break;
+    const nameEnd = offset + 46 + view.getUint16(offset + 28, true);
+    const next = nameEnd + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
+    if (next > directoryEnd) break;
+    const name = decoder.decode(bytes.subarray(offset + 46, nameEnd));
+    if (name === DOCX_PATH) {
+      const flags = view.getUint16(offset + 8, true);
+      const method = view.getUint16(offset + 10, true);
+      const compressedSize = view.getUint32(offset + 20, true);
+      const size = view.getUint32(offset + 24, true);
+      const localOffset = view.getUint32(offset + 42, true);
+      if (flags & 1) throw new Error('请先移除 Word 文档的密码保护。');
+      if (size > MAX_XML_SIZE) throw new Error('DOCX 正文超出可读取大小。');
+      if (localOffset + 30 > offset || view.getUint32(localOffset, true) !== 0x04034b50) break;
+      const start = localOffset + 30 + view.getUint16(localOffset + 26, true) + view.getUint16(localOffset + 28, true);
+      if (start + compressedSize > offset) break;
+      return { bytes: bytes.subarray(start, start + compressedSize), method, size };
+    }
+    offset = next;
+  }
+
+  throw new Error('无法在 DOCX 中读取正文。');
+}
+
+async function readDocxXml(buffer) {
+  const entry = readZipEntry(buffer);
+  if (entry.method === 0 && entry.bytes.length === entry.size) return new TextDecoder().decode(entry.bytes);
+  if (entry.method !== 8) throw new Error('不支持此 DOCX 的压缩格式。');
+
+  let decompression;
+  try {
+    decompression = new DecompressionStream('deflate-raw');
+  } catch {
+    throw new Error('当前浏览器无法解压 DOCX，请另存为 TXT 后导入。');
+  }
+
+  const reader = new Blob([entry.bytes]).stream().pipeThrough(decompression).getReader();
+  const decoder = new TextDecoder();
+  const chunks = [];
+  let received = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > entry.size) {
+        await reader.cancel();
+        throw new Error('DOCX 的解压长度无效。');
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  if (received !== entry.size) throw new Error('DOCX 文件内容不完整。');
+  return chunks.join('') + decoder.decode();
+}
+
+function wordText(xml) {
+  if (/<!DOCTYPE/i.test(xml)) throw new Error('DOCX 正文包含不支持的 XML 声明。');
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const ns = doc.documentElement.namespaceURI;
+  const body = WORD_NAMESPACES.has(ns) && doc.getElementsByTagNameNS(ns, 'body')[0];
+  if (!body) throw new Error('无法读取 DOCX 正文。');
+
+  const paragraphs = Array.from(body.getElementsByTagNameNS(ns, 'p'));
+  return paragraphs.map(paragraph => {
+    const walker = doc.createTreeWalker(paragraph, NodeFilter.SHOW_ELEMENT, node => {
+      if (node.namespaceURI === ns && node.localName === 'p') return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    });
+    const pieces = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.namespaceURI !== ns) continue;
+      if (node.localName === 't') pieces.push(node.textContent);
+      if (node.localName === 'tab') pieces.push('\t');
+      if (node.localName === 'br' || node.localName === 'cr') pieces.push('\n');
+    }
+    return pieces.join('').trim();
+  }).filter(Boolean).join('\n\n');
+}
+
+function readPlainText(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let encoding = 'utf-8';
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) encoding = 'utf-16le';
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) encoding = 'utf-16be';
+  const text = new TextDecoder(encoding, { fatal: true }).decode(bytes);
+  if (text.includes('\0')) throw new Error('请导入纯文本文件。');
+  return text;
+}
+
+async function importFile(file) {
+  if (file.size > MAX_FILE_SIZE) throw new Error('文件须小于或等于 10 MB。');
+  const extension = file.name.split('.').at(-1)?.toLowerCase();
+  if (extension !== 'txt' && extension !== 'docx') throw new Error('请选择 TXT 或 DOCX 文件。');
+  const buffer = await file.arrayBuffer();
+  let text;
+  try {
+    text = extension === 'docx' ? wordText(await readDocxXml(buffer)) : readPlainText(buffer);
+  } catch (error) {
+    if (extension === 'txt') throw new Error('无法读取 TXT，请用 UTF-8 编码保存后再试。');
+    throw new Error(error?.message?.match(/^[\p{Script=Han}]/u) ? error.message : '无法读取此 DOCX。请确认文件能够在 Word 中正常打开。');
+  }
+  if (!text.trim()) throw new Error('未找到可读取的正文。');
+  if (text.length > MAX_CHARACTERS) throw new Error('稿件太长，请缩短后再导入。');
+  return text;
+}
+
+const sample = `On Wednesday I came back to the campus library to check whether anybody had moved the spare reading lamps. Two lamps were missing. The librarian remembered lending one to a student who stayed until closing. I found the other near the window, where someone had shifted it to make room for a second monitor. A small detail from my first visit turned out to matter. The sockets along that wall were the only ones at desk height, so students had pulled their chairs away from the brighter seats to charge their laptops.
+
+Furthermore, it is important to note that lighting plays a crucial role in shaping the overall student experience. Furthermore, it is important to note that flexible furniture provides a wide range of benefits for diverse library users. In addition, it is worth noting that convenient charging plays a pivotal role in supporting productive study sessions. In addition, it is worth noting that quiet environments contribute to a more effective learning experience for students. In conclusion, it is evident that an integrated approach can enhance the library experience across a wide range of settings.
+
+I asked the librarian how she would spend a small renovation budget. Her answer surprised me. She wanted another storage cupboard first. According to her shift notes, students commonly left their bags in the aisle because they couldn't find a safe spot nearby. If we moved the cupboard next to the circulation desk, she said, we could test a solution without buying anything. Next week I plan to count the bags twice, before and after the afternoon rush, and compare those numbers with my notes from Monday.`;
+
+const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+const byId = id => document.getElementById(id);
+const input = byId('manuscript');
+const count = byId('word-count');
+const clear = byId('clear');
+const upload = byId('file-input');
+const importButton = byId('import');
+const scan = byId('scan');
+const sampleButton = byId('sample');
+const error = byId('editor-error');
+const fileStatus = byId('file-status');
+const score = byId('score-value');
+const scoreRing = byId('score-ring');
+const status = byId('result-status');
+const detail = byId('result-detail');
+const report = byId('report');
+const reportText = byId('report-text');
+const fragmentDetail = byId('fragment-detail');
+const filter = byId('filter');
+const method = byId('method');
+
+let currentResult = null;
+let editRevision = 0;
+
+function showError(message = '') {
+  error.hidden = !message;
+  error.textContent = message;
+  if (message) input.setAttribute('aria-invalid', 'true');
+  else input.removeAttribute('aria-invalid');
+}
+
+function showFileStatus(message = '') {
+  fileStatus.hidden = !message;
+  fileStatus.textContent = message;
+}
+
+function resetReport(edited = false) {
+  currentResult = null;
+  score.textContent = '—';
+  scoreRing.style.setProperty('--progress', '0%');
+  status.textContent = edited ? '稿件已修改' : '等待检测';
+  detail.textContent = edited ? '重新检测即可查看最新结果。' : '完成检测后，高亮稿件会显示在下方。';
+  report.hidden = true;
+  reportText.replaceChildren();
+  filter.checked = false;
+}
+
+function syncEditor() {
+  editRevision++;
+  const wordCount = words(input.value).length;
+  count.textContent = numberFormat.format(wordCount) + ' 词';
+  clear.hidden = !input.value;
+  showError();
+  showFileStatus();
+  if (currentResult || status.textContent === '稿件已修改') resetReport(Boolean(input.value.trim()));
+}
+
+function setManuscript(text) {
+  input.value = text;
+  syncEditor();
+  input.scrollTop = 0;
+}
+
+function addMarkedBlock(paragraph, block, id) {
+  const text = document.createElement('mark');
+  text.className = 'fragment-text';
+  text.tabIndex = 0;
+  text.setAttribute('role', 'button');
+  text.setAttribute('aria-expanded', 'false');
+  text.setAttribute('aria-controls', id);
+  text.textContent = block.text.trimEnd();
+  const reasons = document.createElement('span');
+  reasons.className = 'fragment-reasons';
+  reasons.id = id;
+  reasons.lang = 'zh-Hans';
+  reasons.hidden = true;
+  reasons.textContent = '标记原因 · ' + block.reasons.join('、');
+
+  function toggleReasons() {
+    reasons.hidden = !reasons.hidden;
+    text.setAttribute('aria-expanded', String(!reasons.hidden));
+  }
+  text.addEventListener('click', toggleReasons);
+  text.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleReasons();
+    }
+  });
+
+  paragraph.append(text, reasons, document.createTextNode(block.text.slice(block.text.trimEnd().length)));
+}
+
+function renderReport() {
+  const onlyMarked = filter.checked;
+  const content = document.createDocumentFragment();
+  let marker = 0;
+  for (const blocks of currentResult.paragraphs) {
+    if (onlyMarked) {
+      for (const block of blocks.filter(block => block.reasons.length > 0)) {
+        const paragraph = document.createElement('p');
+        addMarkedBlock(paragraph, block, 'reason-' + ++marker);
+        content.append(paragraph);
+      }
+      continue;
+    }
+    const paragraph = document.createElement('p');
+    for (const block of blocks) {
+      if (block.reasons.length) addMarkedBlock(paragraph, block, 'reason-' + ++marker);
+      else paragraph.append(document.createTextNode(block.text));
+    }
+    content.append(paragraph);
+  }
+  reportText.replaceChildren(content);
+  fragmentDetail.hidden = marker > 0;
+  fragmentDetail.textContent = '这篇稿件没有触发标记的片段。';
+}
+
+function runScan() {
+  if (scan.disabled) return;
+  const result = analyze(input.value);
+  if (result.error) {
+    resetReport();
+    showError(result.error);
+    input.focus();
+    return;
+  }
+  showError();
+  currentResult = result;
+  const percentage = result.percentage;
+  score.textContent = percentage > 0 && percentage < .1 ? '<0.1%' : numberFormat.format(percentage) + '%';
+  scoreRing.style.setProperty('--progress', percentage + '%');
+  status.textContent = result.flaggedBlocks ? '标记 ' + numberFormat.format(result.flaggedBlocks) + ' 个片段' : '未标记任何片段';
+  detail.textContent = numberFormat.format(result.flaggedWords) + ' / ' + numberFormat.format(result.totalWords) + ' 词';
+  filter.checked = false;
+  renderReport();
+  report.hidden = false;
+}
+
+input.addEventListener('input', syncEditor);
+input.addEventListener('keydown', event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') runScan();
+});
+scan.addEventListener('click', runScan);
+sampleButton.addEventListener('click', () => {
+  setManuscript(sample);
+  runScan();
+});
+clear.addEventListener('click', () => {
+  setManuscript('');
+  input.focus();
+});
+filter.addEventListener('change', renderReport);
+importButton.addEventListener('click', () => upload.click());
+upload.addEventListener('change', async () => {
+  const file = upload.files[0];
+  upload.value = '';
+  if (!file) return;
+  const previousRevision = editRevision;
+  importButton.disabled = true;
+  scan.disabled = true;
+  showError();
+  showFileStatus('正在读取文件…');
+  try {
+    const text = await importFile(file);
+    if (editRevision !== previousRevision) return;
+    setManuscript(text);
+    showFileStatus('已导入 ' + file.name);
+  } catch (failure) {
+    if (editRevision !== previousRevision) return;
+    showFileStatus();
+    showError(failure.message || '无法导入此文件。');
+  } finally {
+    importButton.disabled = false;
+    scan.disabled = false;
+  }
+});
+
+document.querySelectorAll('[data-open-method]').forEach(button => {
+  button.addEventListener('click', () => method.showModal());
+});
+byId('close-method').addEventListener('click', () => method.close());
+method.addEventListener('click', event => {
+  if (event.target === method) {
+    const bounds = method.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom) method.close();
+  }
+});
+syncEditor();
+})();
+  </script>
+</body>
+</html>
