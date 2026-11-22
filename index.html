@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f3f6f3">
-  <meta name="description" content="在浏览器内预检英文稿件，查看被本地规则标记的文本和原因。">
+  <meta name="description" content="在浏览器内预检中文、英文和中英混排稿件，查看被本地规则标记的文本和原因。">
   <title>文迹 · AI 写作检测</title>
   <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+CiAgPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTEiIGZpbGw9IiMxMjYzNDgiLz4KICA8cGF0aCBkPSJNMTEgMTFoMTh2MThIMTF6bTQgNWgxMG0tMTAgNWg2bTQgNGg3bS0zLjUtMy41djciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==" type="image/svg+xml">
   <style>
@@ -90,6 +90,11 @@ textarea::placeholder { color: #61776c; opacity: 1; }
 .editor-meta { min-height: 2.35rem; padding: .15rem .72rem .2rem 1rem; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .83rem; }
 .editor-meta .plain-button { font-size: .83rem; }
 .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: .65rem; margin-top: .96rem; }
+.sample-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
+.drop-button { flex: 1; flex-wrap: wrap; justify-content: flex-start; text-align: start; white-space: normal; border-style: dashed; }
+.drop-button small { color: var(--muted); font-size: .77rem; }
+.editor-panel.is-dragging .editor-box, .editor-panel.is-dragging .drop-button { border-color: #398e70; background: #e7f4eb; }
+.editor-panel.is-dragging .drop-button { box-shadow: 0 0 0 2px #4f9b7e33; }
 .file-status, .error { font-size: .87rem; margin-top: .5rem; overflow-wrap: anywhere; }
 .file-status { color: var(--muted); }
 .error { color: #a02f25; }
@@ -114,6 +119,8 @@ textarea::placeholder { color: #61776c; opacity: 1; }
 .fragment-text:hover, .fragment-text[aria-expanded="true"] { background: #fbe298; }
 .fragment-reasons { display: block; margin: .42rem 0 .65rem; padding: .42rem .58rem; border-left: 3px solid #d8b341; border-radius: .27rem; color: #574822; background: #fffae9; font-size: .86rem; }
 .fragment-detail { color: var(--muted); font-size: .9rem; }
+.signal-summary { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .65rem; }
+.signal-summary span { padding: .22rem .6rem; border-radius: .4rem; background: var(--green-light); color: var(--green-deep); font-size: .85rem; }
 .site-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .65rem 1rem; color: var(--muted); font-size: .82rem; padding: 1.15rem 0 1.45rem; }
 .site-footer span { display: flex; align-items: center; gap: .36rem; }
 .site-footer .icon { width: .9rem; height: .9rem; color: var(--green); }
@@ -145,6 +152,7 @@ dialog dd { margin: 0 0 .55rem; color: var(--muted); }
   .panel-head { gap: .5rem; align-items: flex-start; }
   .panel-heading { gap: .5rem; }
   .panel-heading p { font-size: .78rem; }
+  .editor-panel .panel-head { flex-wrap: wrap; }
   .panel-icon { width: 2rem; height: 2rem; }
   .panel-icon .icon { width: 1.1rem; height: 1.1rem; }
   .button { padding-inline: .6rem; }
@@ -183,7 +191,7 @@ dialog dd { margin: 0 0 .55rem; color: var(--muted); }
       <div class="hero-copy">
         <div class="hero-label"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>本地检测 · 无需上传</div>
         <h1 id="page-title">AI 写作检测</h1>
-        <p>预检英文稿件，查看被标记的段落与写作特征。</p>
+        <p>预检中文、英文或中英混排稿件，查看标记与原因。</p>
         <span class="hero-caption">独立预检工具，非 Turnitin 官方服务</span>
       </div>
       <div class="hero-art" aria-hidden="true">
@@ -201,18 +209,21 @@ dialog dd { margin: 0 0 .55rem; color: var(--muted); }
     </section>
 
     <div class="workspace">
-      <section class="panel editor-panel" aria-labelledby="editor-title">
+      <section class="panel editor-panel" id="editor-panel" aria-labelledby="editor-title">
         <div class="panel-head">
           <div class="panel-heading">
             <span class="panel-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
-            <div><h2 id="editor-title"><label for="manuscript">输入稿件</label></h2><p id="editor-help">英文正文 · 120–30,000 词 · TXT / DOCX</p></div>
+            <div><h2 id="editor-title"><label for="manuscript">输入稿件</label></h2><p id="editor-help">中文按字计，英文按词计 · 120–30,000</p></div>
           </div>
-          <button type="button" class="button button-secondary" id="sample">试用示例</button>
+          <div class="sample-actions">
+            <button type="button" class="button button-secondary" id="sample">英文示例</button>
+            <button type="button" class="button button-secondary" id="sample-zh">中文示例</button>
+          </div>
         </div>
         <div class="editor-box">
-          <textarea id="manuscript" placeholder="在此粘贴或输入英文正文…" aria-describedby="editor-help" maxlength="350000" spellcheck="false" autocomplete="off" dir="auto"></textarea>
+          <textarea id="manuscript" placeholder="在此粘贴或输入正文，也可以拖入文件…" aria-describedby="editor-help" maxlength="350000" spellcheck="false" autocomplete="off" dir="auto"></textarea>
           <div class="editor-meta">
-            <span id="word-count">0 词</span>
+            <span id="word-count">0 字 / 词</span>
             <button type="button" class="plain-button" id="clear" hidden>清空</button>
           </div>
         </div>
@@ -220,7 +231,7 @@ dialog dd { margin: 0 0 .55rem; color: var(--muted); }
         <p class="error" id="editor-error" role="alert" hidden></p>
         <div class="editor-actions">
           <input id="file-input" type="file" accept=".txt,.docx" hidden>
-          <button type="button" class="button button-secondary file-button" id="import"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>导入文件</button>
+          <button type="button" class="button button-secondary drop-button" id="import"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><span>拖拽或选择文件</span><small>TXT / DOCX</small></button>
           <button type="button" class="button button-primary" id="scan"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>开始检测</button>
         </div>
       </section>
@@ -239,7 +250,7 @@ dialog dd { margin: 0 0 .55rem; color: var(--muted); }
             </div>
           </div>
           <p class="result-status" id="result-status" role="status">等待检测</p>
-          <p class="result-detail" id="result-detail">完成检测后，高亮稿件会显示在下方。</p>
+          <p class="result-detail" id="result-detail">检测后可查看各项规则的命中情况。</p>
         </div>
         <div class="result-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><p>结果仅反映本工具识别的写作特征，无法判定文章是否由 AI 撰写。</p></div>
       </section>
@@ -253,8 +264,9 @@ dialog dd { margin: 0 0 .55rem; color: var(--muted); }
         </div>
         <label class="filter"><input id="filter" type="checkbox"> 仅显示标记片段</label>
       </div>
+      <div class="signal-summary" id="signal-summary" aria-label="各项规则命中的句数"></div>
       <p class="fragment-detail" id="fragment-detail" role="status" hidden></p>
-      <div class="report-text" id="report-text" lang="en"></div>
+      <div class="report-text" id="report-text"></div>
     </section>
   </main>
 
@@ -268,33 +280,32 @@ dialog dd { margin: 0 0 .55rem; color: var(--muted); }
       <h2 id="method-title">如何理解检测结果</h2>
       <button type="button" class="plain-button close-button" id="close-method" aria-label="关闭说明"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
-    <p>文迹将英文正文按段落和句子分成片段。一个片段同时触发以下至少两项规则时，会被高亮。</p>
+    <p>文迹将正文拆成句子，以相邻的最多五句为一组。同组内分别比较中文句和英文句。单句在同一组中符合至少两项规则时才会高亮。</p>
     <dl>
-      <dt>常见套语较密集</dt><dd>多句话使用本工具词表中的固定过渡语或惯用开头。</dd>
-      <dt>句子长度接近</dt><dd>至少四句话，且各句词数变化较小。</dd>
-      <dt>句首结构重复</dt><dd>同一片段内，多句话使用相同的开头词组或同一个实义开头词。</dd>
+      <dt>套语集中</dt><dd>组内至少两句含有词表里的惯用表达，例如「值得注意的是」或 “it is worth noting that”。</dd>
+      <dt>句长接近</dt><dd>至少四句同语种句子的长度较接近。短句不计入这项比较。</dd>
+      <dt>句首重复</dt><dd>组内至少两句以相同的英文两词或中文六字开头。</dd>
     </dl>
-    <p>标记文本占比 = 标记片段词数 ÷ 全文词数。该比例是规则命中的范围。人工写作也可能被标记，AI 写作也可能漏标。</p>
-    <p>Turnitin AI 写作分数由其官方系统出具。查看本工具的结果无法推算学校报告中的分数。</p>
+    <p>标记文本占比是高亮句子的计数除以全文计数。中文按汉字计，英文按词计，混排时相加。命中统计包含只触发一项规则的句子，因此 0% 时也可能有单项命中。</p>
+    <p>这些规则没有经过准确率校准。人工写作也可能被标记，AI 写作也可能漏标。Turnitin AI 写作分数请查看官方报告。</p>
   </dialog>
   <script>
 (() => {
 'use strict';
 
-const MIN_WORDS = 120;
-const MAX_WORDS = 30_000;
+const MIN_UNITS = 120;
+const MAX_UNITS = 30_000;
 const MAX_CHARACTERS = 350_000;
+const WINDOW_SIZE = 5;
+const signalNames = ['套语集中', '句长接近', '句首重复'];
 
 const wordPattern = /\p{Script=Latin}+(?:[’'-]\p{Script=Latin}+)*/gu;
+const hanPattern = /\p{Script=Han}/gu;
 const sentenceSegmenter = typeof Intl.Segmenter === 'function'
   ? new Intl.Segmenter('en', { granularity: 'sentence' })
   : null;
-const stockPhrases = /\b(?:it is important to (?:note|recognize|recognise|consider) that|it is worth noting that|it is essential to (?:note|recognize|recognise|consider)|it is clear that|it is evident that|it is crucial to|it should be noted that|in (?:today[’']s|the) rapidly (?:evolving|changing) (?:landscape|world)|plays? (?:a |an )?(?:pivotal|crucial|vital) role|a wide range of|a nuanced understanding of|delve into|in conclusion|in summary|to sum up|taken together|on the other hand|in addition|as a result|furthermore|moreover|consequently|ultimately)\b/gi;
-const grammaticalOpeners = new Set([
-  'a', 'an', 'the', 'i', 'he', 'she', 'they', 'we', 'it', 'this', 'that', 'these',
-  'those', 'there', 'when', 'if', 'in', 'by', 'with', 'to', 'for', 'as', 'after',
-  'before', 'and', 'but', 'of', 'on', 'is', 'were', 'was', 'are', 'at', 'from'
-]);
+const englishTemplates = /\b(?:it is (?:important|essential|crucial|necessary) to (?:note|recognize|recognise|consider|emphasize|emphasise)|it is worth noting that|it is (?:clear|evident) that|it should be noted that|it cannot be overstated|in (?:today[’']s|the) rapidly (?:evolving|changing) (?:landscape|world)|plays? (?:a |an )?(?:pivotal|crucial|vital) role|a wide range of|a nuanced understanding of|delve into|pave the way for|from a broader perspective|in conclusion|in summary|to sum up|taken together|on the other hand|in addition|furthermore|moreover|consequently|ultimately)\b/i;
+const chineseTemplates = /值得(?:注意|一提|[關关]注)的是|(?:需要|必[須须])(?:指出|[強强][調调]|注意)的是|不容忽[視视]的是|不可否[認认]的是|在此背景下|[綜综]上所述|[總总]而言之|[總总][體体]而言|[綜综]合(?:来看|來看|而言)|毋庸置疑|[發发][揮挥]著?[^\s，。！？；]{0,6}(?:作用|角色)|至[關关]重要|[進进]一步推[動动]|提供有力支[撐撑]|[帶带][來来]深[遠远]影[響响]|具有重要意[義义]|一方面.{0,50}另一方面/u;
 const englishWords = new Set([
   'the', 'a', 'an', 'of', 'and', 'or', 'but', 'in', 'to', 'for', 'from',
   'is', 'are', 'was', 'were', 'be', 'been', 'by', 'with', 'on', 'at', 'that',
@@ -308,89 +319,131 @@ function words(text) {
   return text.match(wordPattern) ?? [];
 }
 
-function sentences(text) {
+function hanCount(text) {
+  return text.match(hanPattern)?.length ?? 0;
+}
+
+function textCounts(text) {
+  return { han: hanCount(text), words: words(text).length };
+}
+
+function splitSentences(text) {
   if (sentenceSegmenter) return Array.from(sentenceSegmenter.segment(text), ({ segment }) => segment);
-  return text.match(/[^.!?]+(?:[.!?]+\s*|$)|[.!?]+\s*/g) ?? [text];
+  return text.match(/[^。！？.!?]+(?:[。！？.!?]+\s*|$)|[。！？.!?]+\s*/gu) ?? [text];
 }
 
-function segmentParagraph(paragraph) {
-  const allSentences = sentences(paragraph).map(text => ({ text, tokens: words(text.toLowerCase()) }));
-  const chunkCount = Math.ceil(allSentences.length / 6);
-  return Array.from({ length: chunkCount }, (_, index) => {
-    const start = Math.floor(index * allSentences.length / chunkCount);
-    const end = Math.floor((index + 1) * allSentences.length / chunkCount);
-    return allSentences.slice(start, end);
-  });
-}
-
-function hasRepeatedOpening(block) {
-  const starts = new Map();
-  const firstWords = new Map();
-  for (const { tokens } of block) {
-    if (tokens.length < 2) continue;
-    const [first, second] = tokens;
-    const pair = first + ' ' + second;
-    starts.set(pair, (starts.get(pair) ?? 0) + 1);
-    if (!grammaticalOpeners.has(first)) firstWords.set(first, (firstWords.get(first) ?? 0) + 1);
-  }
-  return [...starts.values()].some(count => count >= 2)
-    || [...firstWords.values()].some(count => count >= 3);
-}
-
-function scoreBlock(chunk) {
-  const block = chunk.filter(sentence => sentence.tokens.length > 0);
-  const wordCount = block.reduce((sum, sentence) => sum + sentence.tokens.length, 0);
-  const reasons = [];
-  const matchingSentences = block.filter(sentence => sentence.text.match(stockPhrases)).length;
-  if (matchingSentences >= 2 && matchingSentences >= Math.ceil(block.length * .35)) {
-    reasons.push('常见套语较密集');
-  }
-
-  if (block.length >= 4) {
-    const average = wordCount / block.length;
-    const variance = block.reduce((sum, { tokens }) => sum + (tokens.length - average) ** 2, 0) / block.length;
-    if (average >= 10 && Math.sqrt(variance) / average <= .22) reasons.push('句子长度接近');
-    if (hasRepeatedOpening(block)) reasons.push('句首结构重复');
-  }
-
+function sentenceFeatures(text) {
+  const tokens = words(text.toLowerCase());
+  const han = hanCount(text);
+  const chinese = han > tokens.length * 2;
+  const opening = chinese
+    ? text.match(/^[^\p{L}\p{N}]*(\p{Script=Han}{6})/u)?.[1]
+    : tokens.length >= 2 ? tokens.slice(0, 2).join(' ') : '';
   return {
-    text: chunk.map(sentence => sentence.text).join(''),
-    wordCount,
-    sentenceCount: block.length,
-    reasons: reasons.length >= 2 ? reasons : [],
+    text,
+    han,
+    words: tokens.length,
+    language: chinese ? 'zh' : 'en',
+    length: chinese ? han : tokens.length,
+    opening,
+    hasTemplate: (chinese ? chineseTemplates : englishTemplates).test(text),
+    signals: new Set(),
+    reasons: new Set(),
   };
+}
+
+function compareSentences(group, minLength) {
+  if (group.length < 2) return;
+  const hasDenseTemplates = group.filter(sentence => sentence.hasTemplate).length >= 2;
+  const openings = new Map();
+  for (const { opening } of group) {
+    if (opening) openings.set(opening, (openings.get(opening) ?? 0) + 1);
+  }
+
+  const comparable = group.filter(sentence => sentence.length >= minLength);
+  let similarLengths = false;
+  if (comparable.length >= 4) {
+    const mean = comparable.reduce((sum, sentence) => sum + sentence.length, 0) / comparable.length;
+    const variance = comparable.reduce((sum, sentence) => sum + (sentence.length - mean) ** 2, 0) / comparable.length;
+    similarLengths = Math.sqrt(variance) / mean <= .25;
+  }
+
+  for (const sentence of group) {
+    const hits = [];
+    if (hasDenseTemplates && sentence.hasTemplate) hits.push(signalNames[0]);
+    if (similarLengths && sentence.length >= minLength) hits.push(signalNames[1]);
+    if (openings.get(sentence.opening) >= 2) hits.push(signalNames[2]);
+    for (const signal of hits) {
+      sentence.signals.add(signal);
+      if (hits.length >= 2) sentence.reasons.add(signal);
+    }
+  }
+}
+
+function reviewWindows(sentences) {
+  const windows = Math.max(1, sentences.length - WINDOW_SIZE + 1);
+  for (let start = 0; start < windows; start++) {
+    const nearby = sentences.slice(start, start + WINDOW_SIZE);
+    compareSentences(nearby.filter(sentence => sentence.language === 'en'), 10);
+    compareSentences(nearby.filter(sentence => sentence.language === 'zh'), 16);
+  }
+}
+
+function groupHighlights(sentences) {
+  const blocks = [];
+  for (const sentence of sentences) {
+    const reasons = signalNames.filter(signal => sentence.reasons.has(signal));
+    const previous = blocks.at(-1);
+    if (previous && previous.reasons.join() === reasons.join()) {
+      previous.text += sentence.text;
+    } else {
+      blocks.push({ text: sentence.text, reasons });
+    }
+  }
+  return blocks;
 }
 
 function analyze(text) {
   if (text.length > MAX_CHARACTERS) return { error: '稿件太长，请缩短后再试。' };
-  const input = text.trim();
-  if (!input) return { error: '请先粘贴正文，或导入英文稿件。' };
-  const latinLetters = input.match(/\p{Script=Latin}/gu)?.length ?? 0;
-  const allLetters = input.match(/\p{L}/gu)?.length ?? 0;
+  const input = text.trim().replace(/\r\n?/g, '\n');
+  if (!input) return { error: '请先粘贴正文，或拖入稿件文件。' };
+
   const tokens = words(input);
-  const totalWords = tokens.length;
-  const englishCount = tokens.reduce((count, word) => count + Number(englishWords.has(word.toLowerCase())), 0);
-  if (latinLetters < allLetters * .85 || (totalWords >= MIN_WORDS && englishCount / totalWords < .12)) {
-    return { error: '此工具面向英文正文，请检查输入的语言。' };
+  const totals = { han: hanCount(input), words: tokens.length };
+  const size = totals.han + totals.words;
+  const supportedLetters = totals.han + (input.match(/\p{Script=Latin}/gu)?.length ?? 0);
+  const allLetters = input.match(/\p{L}/gu)?.length ?? 0;
+  const englishCount = tokens.reduce((sum, word) => sum + Number(englishWords.has(word.toLowerCase())), 0);
+  if (supportedLetters < allLetters * .85 || (totals.han === 0 && totals.words >= MIN_UNITS && englishCount / totals.words < .10)) {
+    return { error: '请提供中文或英文正文。' };
   }
-  if (totalWords < MIN_WORDS) return { error: '请至少输入 120 个英文词。当前为 ' + totalWords + ' 词。' };
-  if (totalWords > MAX_WORDS) return { error: '超过 30,000 词。请缩短稿件后再检测。' };
+  if (size < MIN_UNITS) return { error: '请至少提供 120 字或词，中英混排时相加计算。' };
+  if (size > MAX_UNITS) return { error: '超过 30,000 字或词。请缩短稿件后再检测。' };
 
-  const paragraphs = input.split(/(?:\r?\n[\t ]*){2,}/u)
-    .map(paragraph => segmentParagraph(paragraph).map(scoreBlock));
-  const blocks = paragraphs.flat();
-  if (blocks.reduce((sum, block) => sum + block.sentenceCount, 0) < 5) {
-    return { error: '请提供至少 5 个英文句子，并保留句末标点。' };
+  const paragraphs = input.split(/\n(?:[\t ]*\n)+/u)
+    .map(paragraph => splitSentences(paragraph).map(sentenceFeatures));
+  const sentences = paragraphs.flat().filter(sentence => sentence.han + sentence.words > 0);
+  if (sentences.length < 4) return { error: '请提供至少 4 个句子，并保留句末标点。' };
+  reviewWindows(sentences);
+
+  const signalCounts = new Map(signalNames.map(signal => [signal, 0]));
+  const flagged = { han: 0, words: 0 };
+  for (const sentence of sentences) {
+    for (const signal of sentence.signals) signalCounts.set(signal, signalCounts.get(signal) + 1);
+    if (sentence.reasons.size > 0) {
+      flagged.han += sentence.han;
+      flagged.words += sentence.words;
+    }
   }
 
-  const flagged = blocks.filter(block => block.reasons.length > 0);
-  const flaggedWords = flagged.reduce((sum, block) => sum + block.wordCount, 0);
+  const blocks = paragraphs.map(groupHighlights);
   return {
-    paragraphs,
-    totalWords,
-    flaggedWords,
-    flaggedBlocks: flagged.length,
-    percentage: flaggedWords / totalWords * 100,
+    paragraphs: blocks,
+    totals,
+    flagged,
+    signalCounts,
+    flaggedBlocks: blocks.flat().filter(block => block.reasons.length > 0).length,
+    percentage: (flagged.han + flagged.words) / size * 100,
   };
 }
 
@@ -539,15 +592,23 @@ Furthermore, it is important to note that lighting plays a crucial role in shapi
 
 I asked the librarian how she would spend a small renovation budget. Her answer surprised me. She wanted another storage cupboard first. According to her shift notes, students commonly left their bags in the aisle because they couldn't find a safe spot nearby. If we moved the cupboard next to the circulation desk, she said, we could test a solution without buying anything. Next week I plan to count the bags twice, before and after the afternoon rush, and compare those numbers with my notes from Monday.`;
 
+const chineseSample = `星期三傍晚，我去图书馆找两盏搬走的台灯。一盏借给了留到闭馆的同学，另一盏在窗边。那排桌子有四个插座，但靠走廊的两个都坏了。管理员说，她早上会先巡一遍，把被拖到过道上的椅子摆回去。
+
+值得注意的是，改善照明对提升学习空间的使用体验至关重要。值得注意的是，增设插座能够为学生使用个人设备提供有力支撑。需要指出的是，灵活的座位安排在优化学习环境方面发挥着重要作用。需要指出的是，完善设施配置对于进一步推动空间利用具有重要意义。综上所述，综合改善各项设施有助于为不同需求的学生提供更好的服务。
+
+管理员最想添置的是储物柜。我问她为什么，她指了指门边那排背包。上周有人过来还书，转身时差点被绊倒。下周我打算在下午三点和五点各记一次，看看过道上的包有多少，再决定把柜子摆在哪里。`;
+
 const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const byId = id => document.getElementById(id);
 const input = byId('manuscript');
 const count = byId('word-count');
 const clear = byId('clear');
+const editor = byId('editor-panel');
 const upload = byId('file-input');
 const importButton = byId('import');
 const scan = byId('scan');
 const sampleButton = byId('sample');
+const chineseSampleButton = byId('sample-zh');
 const error = byId('editor-error');
 const fileStatus = byId('file-status');
 const score = byId('score-value');
@@ -557,11 +618,27 @@ const detail = byId('result-detail');
 const report = byId('report');
 const reportText = byId('report-text');
 const fragmentDetail = byId('fragment-detail');
+const signalSummary = byId('signal-summary');
 const filter = byId('filter');
 const method = byId('method');
 
 let currentResult = null;
 let editRevision = 0;
+let dragDepth = 0;
+
+function formatCounts({ han, words }) {
+  const parts = [];
+  if (han) parts.push(numberFormat.format(han) + ' 字');
+  if (words) parts.push(numberFormat.format(words) + ' 词');
+  return parts.join(' · ') || '0 字 / 词';
+}
+
+function formatResultCounts({ totals, flagged }) {
+  const parts = [];
+  if (totals.han) parts.push(numberFormat.format(flagged.han) + ' / ' + numberFormat.format(totals.han) + ' 字');
+  if (totals.words) parts.push(numberFormat.format(flagged.words) + ' / ' + numberFormat.format(totals.words) + ' 词');
+  return parts.join(' · ');
+}
 
 function showError(message = '') {
   error.hidden = !message;
@@ -580,7 +657,7 @@ function resetReport(edited = false) {
   score.textContent = '—';
   scoreRing.style.setProperty('--progress', '0%');
   status.textContent = edited ? '稿件已修改' : '等待检测';
-  detail.textContent = edited ? '重新检测即可查看最新结果。' : '完成检测后，高亮稿件会显示在下方。';
+  detail.textContent = edited ? '重新检测即可查看最新结果。' : '检测后可查看各项规则的命中情况。';
   report.hidden = true;
   reportText.replaceChildren();
   filter.checked = false;
@@ -588,8 +665,7 @@ function resetReport(edited = false) {
 
 function syncEditor() {
   editRevision++;
-  const wordCount = words(input.value).length;
-  count.textContent = numberFormat.format(wordCount) + ' 词';
+  count.textContent = formatCounts(textCounts(input.value));
   clear.hidden = !input.value;
   showError();
   showFileStatus();
@@ -654,7 +730,16 @@ function renderReport() {
   }
   reportText.replaceChildren(content);
   fragmentDetail.hidden = marker > 0;
-  fragmentDetail.textContent = '这篇稿件没有触发标记的片段。';
+  fragmentDetail.textContent = '没有句子在同一组内同时符合两项规则。上方仍会列出单项命中。';
+}
+
+function renderSignalSummary(result) {
+  const entries = Array.from(result.signalCounts, ([signal, hits]) => {
+    const entry = document.createElement('span');
+    entry.textContent = signal + ' ' + numberFormat.format(hits) + ' 句';
+    return entry;
+  });
+  signalSummary.replaceChildren(...entries);
 }
 
 function runScan() {
@@ -669,37 +754,31 @@ function runScan() {
   showError();
   currentResult = result;
   const percentage = result.percentage;
-  score.textContent = percentage > 0 && percentage < .1 ? '<0.1%' : numberFormat.format(percentage) + '%';
+  let displayPercentage = numberFormat.format(percentage) + '%';
+  if (percentage > 0 && percentage < .1) displayPercentage = '<0.1%';
+  if (percentage > 99.9 && percentage < 100) displayPercentage = '>99.9%';
+  score.textContent = displayPercentage;
   scoreRing.style.setProperty('--progress', percentage + '%');
   status.textContent = result.flaggedBlocks ? '标记 ' + numberFormat.format(result.flaggedBlocks) + ' 个片段' : '未标记任何片段';
-  detail.textContent = numberFormat.format(result.flaggedWords) + ' / ' + numberFormat.format(result.totalWords) + ' 词';
+  detail.textContent = formatResultCounts(result);
   filter.checked = false;
+  filter.disabled = !result.flaggedBlocks;
+  renderSignalSummary(result);
   renderReport();
   report.hidden = false;
 }
 
-input.addEventListener('input', syncEditor);
-input.addEventListener('keydown', event => {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') runScan();
-});
-scan.addEventListener('click', runScan);
-sampleButton.addEventListener('click', () => {
-  setManuscript(sample);
-  runScan();
-});
-clear.addEventListener('click', () => {
-  setManuscript('');
-  input.focus();
-});
-filter.addEventListener('change', renderReport);
-importButton.addEventListener('click', () => upload.click());
-upload.addEventListener('change', async () => {
-  const file = upload.files[0];
-  upload.value = '';
-  if (!file) return;
+async function loadManuscript(files) {
+  if (!files.length || importButton.disabled) return;
+  if (files.length > 1) {
+    showFileStatus();
+    showError('请一次拖入一个 TXT 或 DOCX 文件。');
+    return;
+  }
+  const [file] = files;
   const previousRevision = editRevision;
-  importButton.disabled = true;
-  scan.disabled = true;
+  const controls = [importButton, scan, sampleButton, chineseSampleButton];
+  controls.forEach(control => { control.disabled = true; });
   showError();
   showFileStatus('正在读取文件…');
   try {
@@ -712,10 +791,74 @@ upload.addEventListener('change', async () => {
     showFileStatus();
     showError(failure.message || '无法导入此文件。');
   } finally {
-    importButton.disabled = false;
-    scan.disabled = false;
+    controls.forEach(control => { control.disabled = false; });
+  }
+}
+
+function isFileDrag(event) {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files');
+}
+
+function endDrag() {
+  dragDepth = 0;
+  editor.classList.remove('is-dragging');
+}
+
+input.addEventListener('input', syncEditor);
+input.addEventListener('keydown', event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') runScan();
+});
+scan.addEventListener('click', runScan);
+sampleButton.addEventListener('click', () => {
+  setManuscript(sample);
+  runScan();
+});
+chineseSampleButton.addEventListener('click', () => {
+  setManuscript(chineseSample);
+  runScan();
+});
+clear.addEventListener('click', () => {
+  setManuscript('');
+  input.focus();
+});
+filter.addEventListener('change', renderReport);
+importButton.addEventListener('click', () => upload.click());
+upload.addEventListener('change', () => {
+  const files = Array.from(upload.files);
+  upload.value = '';
+  loadManuscript(files);
+});
+
+editor.addEventListener('dragenter', event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  dragDepth++;
+  if (!importButton.disabled) editor.classList.add('is-dragging');
+});
+editor.addEventListener('dragover', event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = importButton.disabled ? 'none' : 'copy';
+});
+editor.addEventListener('dragleave', event => {
+  if (isFileDrag(event) && --dragDepth <= 0) endDrag();
+});
+editor.addEventListener('drop', event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  endDrag();
+  loadManuscript(Array.from(event.dataTransfer.files));
+});
+window.addEventListener('dragover', event => {
+  if (isFileDrag(event)) event.preventDefault();
+});
+window.addEventListener('drop', event => {
+  if (isFileDrag(event)) {
+    event.preventDefault();
+    endDrag();
   }
 });
+window.addEventListener('dragend', endDrag);
 
 document.querySelectorAll('[data-open-method]').forEach(button => {
   button.addEventListener('click', () => method.showModal());
